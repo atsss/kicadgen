@@ -1,0 +1,38 @@
+{
+  "meta": {
+    "part_number": "TEST-QFN16",
+    "package_type": "QFN",
+    "confidence": 0.95
+  },
+  "footprint": {
+    "pin_count": 16,
+    "pins_per_side": 4,
+    "pitch_mm": 0.5,
+    "pad_width_mm": 0.3,
+    "pad_length_mm": 0.8,
+    "body_width_mm": 3.0,
+    "body_length_mm": 2.5,
+    "pin1_location": "top-left"
+  },
+  "symbol": {
+    "reference": "U",
+    "pins": [
+      {"number": "1", "name": "PIN1", "type": "SIGNAL"},
+      {"number": "2", "name": "PIN2", "type": "SIGNAL"},
+      {"number": "3", "name": "PIN3", "type": "SIGNAL"},
+      {"number": "4", "name": "PIN4", "type": "SIGNAL"},
+      {"number": "5", "name": "PIN5", "type": "SIGNAL"},
+      {"number": "6", "name": "PIN6", "type": "SIGNAL"},
+      {"number": "7", "name": "PIN7", "type": "SIGNAL"},
+      {"number": "8", "name": "PIN8", "type": "SIGNAL"},
+      {"number": "9", "name": "PIN9", "type": "SIGNAL"},
+      {"number": "10", "name": "PIN10", "type": "SIGNAL"},
+      {"number": "11", "name": "PIN11", "type": "SIGNAL"},
+      {"number": "12", "name": "PIN12", "type": "SIGNAL"},
+      {"number": "13", "name": "PIN13", "type": "SIGNAL"},
+      {"number": "14", "name": "PIN14", "type": "SIGNAL"},
+      {"number": "15", "name": "PIN15", "type": "SIGNAL"},
+      {"number": "16", "name": "PIN16", "type": "SIGNAL"}
+    ]
+  }
+}
