@@ -115,7 +115,172 @@ kicadgen <input.pdf> \
 
 ---
 
-# 6. Intermediate JSON Schema
+# 6. Implementation Plan
+
+## 6.1 Project Structure
+
+```
+kicadgen/
+├── pyproject.toml
+├── .env.example
+├── src/
+│   └── kicadgen/
+│       ├── __init__.py
+│       ├── cli.py               # argparse entry point
+│       ├── pipeline.py          # orchestration
+│       ├── pdf_processor.py     # PyMuPDF page selection + PNG render
+│       ├── vlm_client.py        # OpenAI / Anthropic / Gemini clients
+│       ├── extractor.py         # VLM prompt + retry + JSON parse
+│       ├── schema.py            # Pydantic v2 models
+│       ├── validator.py         # geometric + unit validation
+│       ├── generators/
+│       │   ├── __init__.py
+│       │   ├── footprint.py     # .kicad_mod S-expression (QFN)
+│       │   └── symbol.py        # .kicad_sym S-expression
+│       └── utils/
+│           ├── __init__.py
+│           ├── logging.py       # verbose/quiet logger
+│           └── tempfiles.py     # TempImageDir context manager
+└── tests/
+    ├── test_validator.py
+    ├── test_extractor.py
+    ├── test_footprint.py
+    ├── test_symbol.py
+    └── fixtures/
+        └── sample_extracted.json
+```
+
+## 6.2 Module Dependencies
+
+### schema.py
+Core Pydantic v2 models (foundational):
+- `PinSpec(number, name, type)`
+- `MetaSpec(part_number, package_type, confidence)`
+- `FootprintSpec(pin_count, pins_per_side, pitch_mm, pad_width_mm, pad_length_mm, body_width_mm, body_length_mm, pin1_location)`
+- `SymbolSpec(reference="U", pins: list[PinSpec])`
+- `ComponentSpec(meta, footprint, symbol)`
+
+### validator.py
+Depends on: `schema.py`
+
+Validates extracted data:
+- Geometric consistency: `pitch_mm × (pins_per_side - 1) ≈ body_length_mm` (±0.5mm tolerance)
+- Pitch minimum: `pitch_mm >= 0.2mm`
+- Pad constraint: `pad_width_mm <= pitch_mm`
+- Pin count match: `pin_count == len(symbol.pins)`
+- Unit heuristics for mil/inch detection
+
+Returns `ValidationReport(errors: list[str], warnings: list[str])` without raising exceptions.
+
+### pdf_processor.py
+Depends on: PyMuPDF
+
+Two functions:
+- `select_relevant_pages(doc, keywords) -> list[int]`: Keyword-based page scoring
+- `render_pages_to_png(doc, page_indices, dpi=300) -> list[bytes]`: Convert to PNG images
+
+### vlm_client.py
+Depends on: `openai`, `anthropic`, `google-generativeai`
+
+Abstract base + three concrete implementations:
+- `OpenAIClient`: Uses `OPENAI_API_KEY`, GPT-4o
+- `AnthropicClient`: Uses `ANTHROPIC_API_KEY`, Claude 3.5 Sonnet
+- `GeminiClient`: Uses `GEMINI_API_KEY`, Gemini 1.5 Pro
+- `get_client(model: str) -> VLMClient`: Factory function
+
+### extractor.py
+Depends on: `schema.py`, `vlm_client.py`
+
+Functions:
+- `build_prompt(part_number) -> str`: Constructs VLM prompt with schema and context
+- `parse_json_from_response(text) -> dict`: Extracts JSON from VLM response (handles markdown fences)
+- `extract(client, images, part_number, max_retries=3) -> ComponentSpec`: Orchestrates extraction with retry logic
+
+### generators/footprint.py
+Depends on: `schema.py`
+
+Generates `.kicad_mod` S-expression:
+- QFN pad placement (edge pads + thermal pad)
+- Pad centers calculated from pitch, body dimensions, and overlap
+- Valid KiCAD 6+ format output
+
+### generators/symbol.py
+Depends on: `schema.py`
+
+Generates `.kicad_sym` S-expression:
+- Pin distribution on left/right sides
+- Valid KiCAD 6+ format output
+
+### utils/tempfiles.py
+Context manager for temporary image directories:
+```python
+class TempImageDir:
+    def __enter__(self) -> Path: ...
+    def __exit__(self, *_): ...
+```
+
+### utils/logging.py
+Setup verbose/quiet logging based on CLI flags.
+
+### pipeline.py
+Depends on: all modules
+
+Orchestrates the full workflow:
+1. Load PDF
+2. Select relevant pages
+3. Render to PNG images
+4. Call VLM extraction
+5. Validate results
+6. Generate KiCAD files (if valid)
+7. Write outputs and reports
+
+### cli.py
+Depends on: `pipeline.py`
+
+argparse-based CLI with arguments:
+- `input_pdf` (positional, required)
+- `--part-number` (required)
+- `--model` (default: `gpt-4o`)
+- `--out` (default: `./out`)
+- `--verbose` (flag)
+- `--dry-run` (flag)
+
+## 6.3 Dependencies (pyproject.toml)
+
+```toml
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "kicadgen"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+    "pymupdf>=1.24",
+    "pydantic>=2.0",
+    "openai>=1.30",
+    "anthropic>=0.28",
+    "google-generativeai>=0.7",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0", "pytest-cov", "ruff", "mypy"]
+
+[project.scripts]
+kicadgen = "kicadgen.cli:main"
+```
+
+## 6.4 Installation
+
+```bash
+uv pip install -e ".[dev]"
+kicadgen --help
+```
+
+---
+
+# 7. Intermediate JSON Schema
 
 ## 6.1 Root Schema
 
@@ -151,16 +316,16 @@ kicadgen <input.pdf> \
 
 ---
 
-# 7. Validation Rules
+# 8. Validation Rules
 
-## 7.1 Geometric Consistency
+## 8.1 Geometric Consistency
 
 ```
 pitch_mm × (pins_per_side - 1)
 ≈ body_length_mm (tolerance ±0.5mm)
 ```
 
-## 7.2 Abnormal Value Detection
+## 8.2 Abnormal Value Detection
 
 | Condition | Error |
 |------------|--------|
@@ -168,16 +333,16 @@ pitch_mm × (pins_per_side - 1)
 | pad_width_mm > pitch_mm | Invalid |
 | pin_count != number of symbol pins | Error |
 
-## 7.3 Unit Validation
+## 8.3 Unit Validation
 
 - Suspected mil values must trigger a warning
 - Obvious inch values require conversion request
 
 ---
 
-# 8. KiCAD Generation
+# 9. KiCAD Generation
 
-## 8.1 Target Format
+## 9.1 Target Format
 
 KiCAD 6+ S-expression format:
 
@@ -186,7 +351,7 @@ KiCAD 6+ S-expression format:
 
 ---
 
-## 8.2 Initially Supported Package Types
+## 9.2 Initially Supported Package Types
 
 - QFN
 - QFP
@@ -195,7 +360,7 @@ KiCAD 6+ S-expression format:
 
 ---
 
-## 8.3 Pad Placement Rules
+## 9.3 Pad Placement Rules
 
 - Origin at package center
 - Pin 1 located at top-left (default orientation)
@@ -203,7 +368,7 @@ KiCAD 6+ S-expression format:
 
 ---
 
-# 9. Output Structure
+# 10. Output Structure
 
 ```
 out/
@@ -215,7 +380,7 @@ out/
 
 ---
 
-# 10. Error Handling
+# 11. Error Handling
 
 | Situation | Behavior |
 |------------|------------|
@@ -226,7 +391,7 @@ out/
 
 ---
 
-# 11. Security Requirements
+# 12. Security Requirements
 
 - API keys must be provided via environment variables
 - API keys must never appear in logs
@@ -235,7 +400,7 @@ out/
 
 ---
 
-# 12. Non-Functional Requirements
+# 13. Non-Functional Requirements
 
 | Item | Requirement |
 |------|-------------|
@@ -247,7 +412,7 @@ out/
 
 ---
 
-# 13. Development Phases
+# 14. Development Phases
 
 ## Phase 1 (MVP)
 
@@ -268,7 +433,7 @@ out/
 
 ---
 
-# 14. Limitations
+# 15. Limitations
 
 - Highly dependent on datasheet format
 - Sensitive to manufacturer formatting variations
@@ -277,7 +442,7 @@ out/
 
 ---
 
-# 15. Design Philosophy
+# 16. Design Philosophy
 
 This tool does not aim for full automation.
 
