@@ -56,7 +56,7 @@ class OpenAIClient(VLMClient):
         # Add text prompt
         message_content = image_contents + [{"type": "text", "text": prompt}]
 
-        response = self.client.messages.create(
+        response = self.client.chat.completions.create(
             model="gpt-4o",
             max_tokens=2048,
             messages=[
@@ -67,7 +67,7 @@ class OpenAIClient(VLMClient):
             ],
         )
 
-        return response.content[0].text
+        return response.choices[0].message.content
 
 
 class AnthropicClient(VLMClient):
