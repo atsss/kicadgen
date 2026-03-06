@@ -3,9 +3,13 @@
 import argparse
 import sys
 
+from dotenv import load_dotenv
+
 
 def main() -> int:
     """Main entry point for the kicadgen CLI."""
+    load_dotenv()
+
     parser = argparse.ArgumentParser(
         description="Generate KiCAD footprint and symbol files from component datasheets using AI extraction",
         prog="kicadgen",
