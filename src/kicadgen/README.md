@@ -17,6 +17,7 @@ Command-line interface using argparse. Entry point for the `kicadgen` command.
 - `--out` (optional, default: ./out): Output directory
 - `--verbose` (flag): Enable debug logging
 - `--dry-run` (flag): Skip file writing, only show validation report
+- `--no-review` (flag): Skip human review of extracted JSON before validation (for automated/CI runs)
 
 ### `schema.py`
 Pydantic v2 data models representing normalized component specifications.
@@ -88,6 +89,7 @@ VLM-based extraction of normalized component specifications from datasheet image
 Orchestrates the complete workflow from PDF to KiCAD files.
 
 **Functions:**
+- `prompt_human_review(spec, extracted_path)`: Displays summary of extracted specification and waits for user confirmation before validation. Shows component info, confidence, footprint details, missing fields, and assumptions. Returns `True` to proceed, `False` to abort.
 - `write_validation_report(report, path)`: Writes validation results to text file
 - `run(args)`: Main pipeline orchestration
 
@@ -96,9 +98,16 @@ Orchestrates the complete workflow from PDF to KiCAD files.
 2. Select relevant pages
 3. Render pages to PNG
 4. Call VLM for extraction
-5. Validate specification
-6. Generate KiCAD files (if validation passes)
-7. Write outputs
+5. Save extracted.json
+6. **[Human Review]** — prompt user to review extracted data (unless `--no-review` flag)
+7. Validate specification
+8. Generate KiCAD files (if validation passes)
+9. Write outputs and validation report
+
+**User Interactions:**
+- Review prompt accepts: `y`/Enter to proceed, `n`/`q` to abort (exit code 1)
+- User can manually edit extracted.json while prompt waits
+- Invalid input loops until valid response given
 
 ### `generators/` (subdirectory)
 Contains KiCAD format generators.
