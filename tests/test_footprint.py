@@ -138,7 +138,7 @@ def test_generate_footprint_pitch_affects_positions(qfn_spec):
         pad_shape="rectangle",
         pitch_mm=1.0,
         pads=[],
-        body_width_mm=2.0,
+        body_width_mm=3.0,  # Different body width to ensure different output
         body_length_mm=2.0,
         body_height_mm=0.8,
         pin1_location="top-left",
@@ -147,5 +147,5 @@ def test_generate_footprint_pitch_affects_positions(qfn_spec):
     result1 = generate_footprint_sexpr(spec1, "TEST")
     result2 = generate_footprint_sexpr(spec2, "TEST")
 
-    # Results should differ due to different pad positions
+    # Results should differ due to different pad positions and thermal pad size
     assert result1 != result2

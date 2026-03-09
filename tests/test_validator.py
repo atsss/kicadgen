@@ -35,7 +35,7 @@ def valid_spec() -> ComponentSpec:
             pitch_mm=0.5,
             pads=[],
             body_width_mm=3.0,
-            body_length_mm=2.5,
+            body_length_mm=1.5,  # pitch * (pins_per_side - 1) = 0.5 * 3 = 1.5
             body_height_mm=0.8,
             pin1_location="top-left",
         ),
@@ -58,7 +58,7 @@ def test_valid_specification(valid_spec):
 def test_geometric_consistency_error(valid_spec):
     """Test that geometric inconsistency is caught."""
     # Make body length inconsistent with pitch and pins_per_side
-    valid_spec.footprint.body_length_mm = 1.0  # pitch * (pins_per_side - 1) = 0.5 * 3 = 1.5
+    valid_spec.footprint.body_length_mm = 0.9  # pitch * (pins_per_side - 1) = 0.5 * 3 = 1.5, difference = 0.6 > tolerance
     report = validate_component(valid_spec)
     assert not report.is_valid
     assert len(report.errors) == 1
@@ -96,7 +96,10 @@ def test_pin_count_mismatch_error(valid_spec):
 def test_multiple_errors(valid_spec):
     """Test that multiple errors are reported."""
     valid_spec.footprint.pitch_mm = 0.1  # Too small
-    valid_spec.footprint.pad_width_mm = 0.6  # Exceeds pitch
+    # Add a pad with width > pitch
+    valid_spec.footprint.pads = [
+        PadSpec(number="1", x_mm=0, y_mm=0, width_mm=0.6, length_mm=0.8, shape="rectangle")
+    ]
     report = validate_component(valid_spec)
     assert not report.is_valid
     assert len(report.errors) >= 2
@@ -121,7 +124,6 @@ def test_unit_heuristic_warning(valid_spec):
     # Set pitch to a value that looks like mils (e.g., 50 mils)
     valid_spec.footprint.pitch_mm = 50
     valid_spec.footprint.body_length_mm = 150  # Adjust to pass geometric test
-    valid_spec.footprint.pad_width_mm = 40
     report = validate_component(valid_spec)
     # Should have warnings but may still be valid depending on other constraints
     assert len(report.warnings) > 0 or not report.is_valid
@@ -144,7 +146,6 @@ def test_no_errors_on_valid_large_pitch(valid_spec):
     valid_spec.footprint.pitch_mm = 5.0
     valid_spec.footprint.pins_per_side = 4
     valid_spec.footprint.body_length_mm = 15.0  # 5 * 3
-    valid_spec.footprint.pad_width_mm = 4.0
     report = validate_component(valid_spec)
     assert report.is_valid or len(report.errors) == 0
 

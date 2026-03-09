@@ -123,18 +123,20 @@ def generate_footprint_sexpr(spec: FootprintSpec, part_number: str) -> str:
 
     # Close footprint if no computed layout was added
     if not spec.pads or (spec.pitch_mm is None or spec.pins_per_side is None):
-        lines.extend(
-            [
-                "",
-                "  (fp_text reference \"{}\" (at 0 0) (layer \"F.SilkS\"))".format("U?"),
-                "    (effects (font (size 1.0 1.0) (thickness 0.15)))",
-                "  )",
-                "",
-                "  (fp_text value \"{}\" (at 0 0) (layer \"F.Fab\"))".format(part_number),
-                "    (effects (font (size 1.0 1.0) (thickness 0.15)))",
-                "  )",
-            ]
-        )
+        # Only add text fields if they weren't already added by computed layout
+        if not (spec.pitch_mm is not None and spec.pins_per_side is not None and spec.body_length_mm is not None and spec.body_width_mm is not None):
+            lines.extend(
+                [
+                    "",
+                    "  (fp_text reference \"{}\" (at 0 0) (layer \"F.SilkS\"))".format("U?"),
+                    "    (effects (font (size 1.0 1.0) (thickness 0.15)))",
+                    "  )",
+                    "",
+                    "  (fp_text value \"{}\" (at 0 0) (layer \"F.Fab\"))".format(part_number),
+                    "    (effects (font (size 1.0 1.0) (thickness 0.15)))",
+                    "  )",
+                ]
+            )
 
     lines.append(")")
 
