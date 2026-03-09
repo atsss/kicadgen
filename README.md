@@ -48,6 +48,8 @@ VLM API Call
  ↓
 Structured JSON Extraction
  ↓
+[Human Review] ← pauses for user confirmation
+ ↓
 Validation
  ↓
 KiCAD File Generation
@@ -91,6 +93,7 @@ kicadgen <input.pdf> \
 - `--out` (default: ./out)
 - `--verbose`
 - `--dry-run`
+- `--no-review` (skip human review of extracted JSON)
 
 ---
 
@@ -111,7 +114,21 @@ kicadgen <input.pdf> \
 - All units must be in millimeters (mm)
 - No estimation or guessing allowed
 - Missing values must be returned as null
-- `confidence` field is mandatory
+- `extraction_confidence` field is mandatory (0.0-1.0)
+
+---
+
+## 5.4 Human Review Step
+
+After AI extraction, before validation, the pipeline pauses for human review:
+
+- Displays a summary of extracted fields (component info, confidence, footprint details)
+- Shows path to `extracted.json` for manual inspection/editing
+- Prompts user: "Proceed with validation? [Y/n]:"
+- **Enabled by default** — use `--no-review` flag to skip (for automated/CI usage)
+- User can:
+  - Press **Enter** or type **`y`** → continue to validation
+  - Type **`n`** or **`q`** → abort pipeline (exit code 1)
 
 ---
 
@@ -236,9 +253,15 @@ Orchestrates the full workflow:
 2. Select relevant pages
 3. Render to PNG images
 4. Call VLM extraction
-5. Validate results
-6. Generate KiCAD files (if valid)
-7. Write outputs and reports
+5. Save extracted.json
+6. **[Human Review]** — prompt user to review extracted data (unless --no-review)
+7. Validate results
+8. Generate KiCAD files (if valid)
+9. Write outputs and reports
+
+**Key Functions:**
+- `prompt_human_review(spec, extracted_path)`: Displays extraction summary and waits for user confirmation
+- `write_validation_report(report, output_path)`: Writes validation results to file
 
 ### cli.py
 Depends on: `pipeline.py`
@@ -250,6 +273,7 @@ argparse-based CLI with arguments:
 - `--out` (default: `./out`)
 - `--verbose` (flag)
 - `--dry-run` (flag)
+- `--no-review` (flag) — skip human review step before validation
 
 ## 6.3 Dependencies (pyproject.toml)
 
@@ -440,7 +464,8 @@ out/
 | Situation | Behavior |
 |------------|------------|
 | Invalid JSON | Retry extraction |
-| metadata.extraction_confidence < 0.8 | Warning |
+| metadata.extraction_confidence < 0.8 | Warning during review |
+| User aborts during review | Exit code 1, no validation/generation |
 | Validation failure | Abort KiCAD generation |
 | API failure | Retry up to 3 times |
 
@@ -471,9 +496,11 @@ out/
 
 ## Phase 1 (MVP)
 
-- PDF → AI extraction
-- JSON output
+- PDF → AI extraction with normalized JSON schema
+- Human review step before validation
+- JSON output with metadata (confidence, missing fields, assumptions)
 - QFN-only generation
+- Basic validation with unit heuristics
 
 ## Phase 2
 
