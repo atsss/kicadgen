@@ -32,7 +32,9 @@ def select_relevant_pages(doc: fitz.Document, keywords: list[str]) -> list[int]:
     return [idx for idx, _ in page_scores[:3]] if page_scores else []
 
 
-def render_pages_to_png(doc: fitz.Document, page_indices: list[int], dpi: int = 300) -> list[bytes]:
+def render_pages_to_png(
+    doc: fitz.Document, page_indices: list[int], dpi: int = 300
+) -> list[bytes]:
     """
     Render selected pages to PNG images.
 

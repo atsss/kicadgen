@@ -17,10 +17,10 @@ def generate_symbol_sexpr(spec: SymbolSpec, part_number: str) -> str:
         Valid .kicad_sym S-expression string
     """
     lines = [
-        "(symbol \"{}\"".format(part_number),
+        '(symbol "{}"'.format(part_number),
         "  (pin_numbers hide)",
-        "  (property \"Reference\" \"{}\" (id 0) (at 0 0 0))".format(spec.reference_prefix),
-        "  (property \"Value\" \"{}\" (id 1) (at 0 0 0))".format(part_number),
+        '  (property "Reference" "{}" (id 0) (at 0 0 0))'.format(spec.reference_prefix),
+        '  (property "Value" "{}" (id 1) (at 0 0 0))'.format(part_number),
         "",
     ]
 
@@ -61,7 +61,7 @@ def generate_symbol_sexpr(spec: SymbolSpec, part_number: str) -> str:
     # Add symbol drawing
     lines.extend(
         [
-            "  (symbol \"{}_1_1\"".format(part_number),
+            '  (symbol "{}_1_1"'.format(part_number),
             "    (rectangle (start {:.1f} {:.1f}) (end {:.1f} {:.1f})".format(
                 -body_width / 2, body_height / 2, body_width / 2, -body_height / 2
             ),
@@ -76,7 +76,7 @@ def generate_symbol_sexpr(spec: SymbolSpec, part_number: str) -> str:
         for i, pin in enumerate(left_pins):
             y = (body_height / 2) - (i + 1) * (body_height / (len(left_pins) + 1))
             lines.append(
-                "    (pin passive line (at {:.1f} {:.1f} 0) (length 2.54) (name \"{}\" (effects (font (size 1.27 1.27) (thickness 0.15)))) (number \"{}\" (effects (font (size 1.27 1.27) (thickness 0.15)))))".format(
+                '    (pin passive line (at {:.1f} {:.1f} 0) (length 2.54) (name "{}" (effects (font (size 1.27 1.27) (thickness 0.15)))) (number "{}" (effects (font (size 1.27 1.27) (thickness 0.15)))))'.format(
                     -body_width / 2 - 2.54, y, pin.name, pin.number
                 )
             )
@@ -86,7 +86,7 @@ def generate_symbol_sexpr(spec: SymbolSpec, part_number: str) -> str:
         for i, pin in enumerate(right_pins):
             y = (body_height / 2) - (i + 1) * (body_height / (len(right_pins) + 1))
             lines.append(
-                "    (pin passive line (at {:.1f} {:.1f} 180) (length 2.54) (name \"{}\" (effects (font (size 1.27 1.27) (thickness 0.15)))) (number \"{}\" (effects (font (size 1.27 1.27) (thickness 0.15)))))".format(
+                '    (pin passive line (at {:.1f} {:.1f} 180) (length 2.54) (name "{}" (effects (font (size 1.27 1.27) (thickness 0.15)))) (number "{}" (effects (font (size 1.27 1.27) (thickness 0.15)))))'.format(
                     body_width / 2 + 2.54, y, pin.name, pin.number
                 )
             )
@@ -96,7 +96,7 @@ def generate_symbol_sexpr(spec: SymbolSpec, part_number: str) -> str:
         for i, pin in enumerate(top_pins):
             x = (-body_width / 2) + (i + 1) * (body_width / (len(top_pins) + 1))
             lines.append(
-                "    (pin passive line (at {:.1f} {:.1f} 270) (length 2.54) (name \"{}\" (effects (font (size 1.27 1.27) (thickness 0.15)))) (number \"{}\" (effects (font (size 1.27 1.27) (thickness 0.15)))))".format(
+                '    (pin passive line (at {:.1f} {:.1f} 270) (length 2.54) (name "{}" (effects (font (size 1.27 1.27) (thickness 0.15)))) (number "{}" (effects (font (size 1.27 1.27) (thickness 0.15)))))'.format(
                     x, body_height / 2 + 2.54, pin.name, pin.number
                 )
             )
@@ -106,7 +106,7 @@ def generate_symbol_sexpr(spec: SymbolSpec, part_number: str) -> str:
         for i, pin in enumerate(bottom_pins):
             x = (-body_width / 2) + (i + 1) * (body_width / (len(bottom_pins) + 1))
             lines.append(
-                "    (pin passive line (at {:.1f} {:.1f} 90) (length 2.54) (name \"{}\" (effects (font (size 1.27 1.27) (thickness 0.15)))) (number \"{}\" (effects (font (size 1.27 1.27) (thickness 0.15)))))".format(
+                '    (pin passive line (at {:.1f} {:.1f} 90) (length 2.54) (name "{}" (effects (font (size 1.27 1.27) (thickness 0.15)))) (number "{}" (effects (font (size 1.27 1.27) (thickness 0.15)))))'.format(
                     x, -(body_height / 2 + 2.54), pin.name, pin.number
                 )
             )

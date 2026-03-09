@@ -5,7 +5,12 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from kicadgen.extractor import ExtractionError, build_prompt, extract, parse_json_from_response
+from kicadgen.extractor import (
+    ExtractionError,
+    build_prompt,
+    extract,
+    parse_json_from_response,
+)
 from kicadgen.schema import ComponentSpec
 
 
@@ -22,8 +27,20 @@ def test_build_prompt():
 def test_parse_json_from_response_plain():
     """Test JSON parsing from plain response."""
     json_data = {
-        "component": {"name": "Test", "manufacturer": "Corp", "part_number": "TEST", "description": "Test", "package_type": "QFN", "datasheet_source": "test.pdf"},
-        "metadata": {"extraction_confidence": 0.9, "missing_fields": [], "assumptions": [], "source_pages": []}
+        "component": {
+            "name": "Test",
+            "manufacturer": "Corp",
+            "part_number": "TEST",
+            "description": "Test",
+            "package_type": "QFN",
+            "datasheet_source": "test.pdf",
+        },
+        "metadata": {
+            "extraction_confidence": 0.9,
+            "missing_fields": [],
+            "assumptions": [],
+            "source_pages": [],
+        },
     }
     response = json.dumps(json_data)
     parsed = parse_json_from_response(response)
@@ -33,8 +50,20 @@ def test_parse_json_from_response_plain():
 def test_parse_json_from_response_with_markdown():
     """Test JSON parsing with markdown code fences."""
     json_data = {
-        "component": {"name": "Test", "manufacturer": "Corp", "part_number": "TEST", "description": "Test", "package_type": "QFN", "datasheet_source": "test.pdf"},
-        "metadata": {"extraction_confidence": 0.9, "missing_fields": [], "assumptions": [], "source_pages": []}
+        "component": {
+            "name": "Test",
+            "manufacturer": "Corp",
+            "part_number": "TEST",
+            "description": "Test",
+            "package_type": "QFN",
+            "datasheet_source": "test.pdf",
+        },
+        "metadata": {
+            "extraction_confidence": 0.9,
+            "missing_fields": [],
+            "assumptions": [],
+            "source_pages": [],
+        },
     }
     response = "```json\n" + json.dumps(json_data) + "\n```"
     parsed = parse_json_from_response(response)
@@ -44,8 +73,20 @@ def test_parse_json_from_response_with_markdown():
 def test_parse_json_from_response_with_plain_fence():
     """Test JSON parsing with plain code fence."""
     json_data = {
-        "component": {"name": "Test", "manufacturer": "Corp", "part_number": "TEST", "description": "Test", "package_type": "QFN", "datasheet_source": "test.pdf"},
-        "metadata": {"extraction_confidence": 0.9, "missing_fields": [], "assumptions": [], "source_pages": []}
+        "component": {
+            "name": "Test",
+            "manufacturer": "Corp",
+            "part_number": "TEST",
+            "description": "Test",
+            "package_type": "QFN",
+            "datasheet_source": "test.pdf",
+        },
+        "metadata": {
+            "extraction_confidence": 0.9,
+            "missing_fields": [],
+            "assumptions": [],
+            "source_pages": [],
+        },
     }
     response = "```\n" + json.dumps(json_data) + "\n```"
     parsed = parse_json_from_response(response)
@@ -55,8 +96,20 @@ def test_parse_json_from_response_with_plain_fence():
 def test_parse_json_with_extra_whitespace():
     """Test JSON parsing with extra whitespace."""
     json_data = {
-        "component": {"name": "Test", "manufacturer": "Corp", "part_number": "TEST", "description": "Test", "package_type": "QFN", "datasheet_source": "test.pdf"},
-        "metadata": {"extraction_confidence": 0.9, "missing_fields": [], "assumptions": [], "source_pages": []}
+        "component": {
+            "name": "Test",
+            "manufacturer": "Corp",
+            "part_number": "TEST",
+            "description": "Test",
+            "package_type": "QFN",
+            "datasheet_source": "test.pdf",
+        },
+        "metadata": {
+            "extraction_confidence": 0.9,
+            "missing_fields": [],
+            "assumptions": [],
+            "source_pages": [],
+        },
     }
     response = "  \n" + json.dumps(json_data) + "  \n"
     parsed = parse_json_from_response(response)
@@ -99,7 +152,13 @@ def test_extract_success():
             "pin_pitch_grid": 2.54,
             "reference_prefix": "U",
             "pins": [
-                {"number": str(i), "name": f"PIN{i}", "type": "SIGNAL", "side": "left" if i <= 8 else "right", "unit": 1}
+                {
+                    "number": str(i),
+                    "name": f"PIN{i}",
+                    "type": "SIGNAL",
+                    "side": "left" if i <= 8 else "right",
+                    "unit": 1,
+                }
                 for i in range(1, 17)
             ],
         },

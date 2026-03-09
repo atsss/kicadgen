@@ -14,7 +14,13 @@ def qfn_symbol() -> SymbolSpec:
         pin_pitch_grid=2.54,
         reference_prefix="U",
         pins=[
-            PinSpec(number=str(i), name=f"PIN{i}", type="SIGNAL", side="left" if i <= 8 else "right", unit=1)
+            PinSpec(
+                number=str(i),
+                name=f"PIN{i}",
+                type="SIGNAL",
+                side="left" if i <= 8 else "right",
+                unit=1,
+            )
             for i in range(1, 17)
         ],
     )

@@ -2,7 +2,15 @@
 
 import pytest
 
-from kicadgen.schema import ComponentInfo, ComponentSpec, FootprintSpec, MetadataSpec, PadSpec, PinSpec, SymbolSpec
+from kicadgen.schema import (
+    ComponentInfo,
+    ComponentSpec,
+    FootprintSpec,
+    MetadataSpec,
+    PadSpec,
+    PinSpec,
+    SymbolSpec,
+)
 from kicadgen.validator import validate_component
 
 
@@ -23,7 +31,12 @@ def valid_spec() -> ComponentSpec:
             pin_pitch_grid=2.54,
             reference_prefix="U",
             pins=[
-                PinSpec(number=str(i), name=f"PIN{i}", type="SIGNAL", side="left" if i <= 8 else "right")
+                PinSpec(
+                    number=str(i),
+                    name=f"PIN{i}",
+                    type="SIGNAL",
+                    side="left" if i <= 8 else "right",
+                )
                 for i in range(1, 17)
             ],
         ),
@@ -58,7 +71,9 @@ def test_valid_specification(valid_spec):
 def test_geometric_consistency_error(valid_spec):
     """Test that geometric inconsistency is caught."""
     # Make body length inconsistent with pitch and pins_per_side
-    valid_spec.footprint.body_length_mm = 0.9  # pitch * (pins_per_side - 1) = 0.5 * 3 = 1.5, difference = 0.6 > tolerance
+    valid_spec.footprint.body_length_mm = (
+        0.9  # pitch * (pins_per_side - 1) = 0.5 * 3 = 1.5, difference = 0.6 > tolerance
+    )
     report = validate_component(valid_spec)
     assert not report.is_valid
     assert len(report.errors) == 1
@@ -77,7 +92,9 @@ def test_pad_width_exceeds_pitch_error(valid_spec):
     """Test that pad width > pitch is rejected."""
     # Add a pad with width > pitch
     valid_spec.footprint.pads = [
-        PadSpec(number="1", x_mm=0, y_mm=0, width_mm=0.6, length_mm=0.8, shape="rectangle")
+        PadSpec(
+            number="1", x_mm=0, y_mm=0, width_mm=0.6, length_mm=0.8, shape="rectangle"
+        )
     ]
     report = validate_component(valid_spec)
     assert not report.is_valid
@@ -98,7 +115,9 @@ def test_multiple_errors(valid_spec):
     valid_spec.footprint.pitch_mm = 0.1  # Too small
     # Add a pad with width > pitch
     valid_spec.footprint.pads = [
-        PadSpec(number="1", x_mm=0, y_mm=0, width_mm=0.6, length_mm=0.8, shape="rectangle")
+        PadSpec(
+            number="1", x_mm=0, y_mm=0, width_mm=0.6, length_mm=0.8, shape="rectangle"
+        )
     ]
     report = validate_component(valid_spec)
     assert not report.is_valid
@@ -156,8 +175,12 @@ def test_validation_never_raises():
     try:
         spec = ComponentSpec(
             component=ComponentInfo(
-                name="Test", manufacturer="Corp", part_number="TEST",
-                description="Test", package_type="QFN", datasheet_source="test.pdf"
+                name="Test",
+                manufacturer="Corp",
+                part_number="TEST",
+                description="Test",
+                package_type="QFN",
+                datasheet_source="test.pdf",
             ),
             footprint=FootprintSpec(
                 pin_count=8,

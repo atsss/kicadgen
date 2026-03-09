@@ -29,9 +29,11 @@ def validate_component(spec: ComponentSpec) -> ValidationReport:
     # Rule 1: Geometric consistency
     # pitch_mm × (pins_per_side - 1) ≈ body_length_mm (tolerance ±0.5mm)
     # Only check if both values are provided
-    if (spec.footprint.pitch_mm is not None and
-        spec.footprint.pins_per_side is not None and
-        spec.footprint.body_length_mm is not None):
+    if (
+        spec.footprint.pitch_mm is not None
+        and spec.footprint.pins_per_side is not None
+        and spec.footprint.body_length_mm is not None
+    ):
         expected_length = spec.footprint.pitch_mm * (spec.footprint.pins_per_side - 1)
         actual_length = spec.footprint.body_length_mm
         if abs(expected_length - actual_length) > 0.5:
@@ -44,7 +46,9 @@ def validate_component(spec: ComponentSpec) -> ValidationReport:
 
     # Rule 2: Pitch minimum
     if spec.footprint.pitch_mm is not None and spec.footprint.pitch_mm < 0.2:
-        report.errors.append(f"Invalid pitch: {spec.footprint.pitch_mm}mm < 0.2mm minimum")
+        report.errors.append(
+            f"Invalid pitch: {spec.footprint.pitch_mm}mm < 0.2mm minimum"
+        )
 
     # Rule 3: Pad width constraint (check per-pad widths if pads list exists)
     if spec.footprint.pitch_mm is not None:
@@ -70,10 +74,12 @@ def validate_component(spec: ComponentSpec) -> ValidationReport:
 
     # Rule 6: Unit heuristics for mil/inch detection
     # Suspected mils (values like 10-250 that would be tiny in mm)
-    if (spec.footprint.pitch_mm is not None and
-        spec.footprint.body_length_mm is not None and
-        10 <= spec.footprint.pitch_mm <= 250 and
-        spec.footprint.pitch_mm > spec.footprint.body_length_mm):
+    if (
+        spec.footprint.pitch_mm is not None
+        and spec.footprint.body_length_mm is not None
+        and 10 <= spec.footprint.pitch_mm <= 250
+        and spec.footprint.pitch_mm > spec.footprint.body_length_mm
+    ):
         report.warnings.append(
             f"Suspected mil values: pitch {spec.footprint.pitch_mm}mm seems unusually large; "
             f"did you mean {spec.footprint.pitch_mm * 0.0254:.3f}mm?"

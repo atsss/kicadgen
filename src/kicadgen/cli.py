@@ -63,6 +63,7 @@ def main() -> int:
     args = parser.parse_args()
 
     from kicadgen.pipeline import run
+
     return run(args)
 
 
