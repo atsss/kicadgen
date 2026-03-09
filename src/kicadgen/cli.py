@@ -54,6 +54,12 @@ def main() -> int:
         help="Skip file writing, only show validation report",
     )
 
+    parser.add_argument(
+        "--no-review",
+        action="store_true",
+        help="Skip human review of extracted JSON before validation",
+    )
+
     args = parser.parse_args()
 
     from kicadgen.pipeline import run

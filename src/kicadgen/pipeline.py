@@ -42,6 +42,79 @@ def write_validation_report(report, output_path: Path) -> None:
     output_path.write_text("\n".join(lines) + "\n")
 
 
+def prompt_human_review(spec, extracted_path: Path) -> bool:
+    """
+    Prompt user to review extracted specification before validation.
+
+    Displays a summary of key extracted fields and asks user to confirm.
+
+    Args:
+        spec: ComponentSpec from extraction
+        extracted_path: Path to extracted.json file
+
+    Returns:
+        True to proceed with validation, False to abort pipeline
+    """
+    # Build summary
+    lines = [
+        "",
+        "─" * 60,
+        " Extracted Specification Review",
+        "─" * 60,
+    ]
+
+    # Component info
+    lines.append(f" Component : {spec.component.name} ({spec.component.manufacturer})")
+    lines.append(f" Part No.  : {spec.component.part_number}")
+    lines.append(f" Package   : {spec.component.package_type}")
+
+    # Confidence
+    confidence_pct = spec.metadata.extraction_confidence * 100
+    confidence_str = f"{confidence_pct:.1f}%"
+    if spec.metadata.extraction_confidence < 0.8:
+        confidence_str += " ⚠️ LOW"
+    lines.append(f" Confidence: {confidence_str}")
+
+    # Footprint info
+    lines.append("")
+    footprint_desc = f"{spec.footprint.pin_count} pads"
+    if spec.footprint.pins_per_side is not None:
+        footprint_desc += f", {spec.footprint.pins_per_side}/side"
+    if spec.footprint.pitch_mm is not None:
+        footprint_desc += f", pitch {spec.footprint.pitch_mm}mm"
+    footprint_desc += f" ({spec.footprint.pad_type})"
+    lines.append(f" Footprint : {footprint_desc}")
+
+    # Missing fields
+    if spec.metadata.missing_fields:
+        lines.append(f" Missing   : {', '.join(spec.metadata.missing_fields)}")
+
+    # Assumptions
+    if spec.metadata.assumptions:
+        lines.append(f" Assumed   : {spec.metadata.assumptions[0]}")
+        if len(spec.metadata.assumptions) > 1:
+            for assumption in spec.metadata.assumptions[1:]:
+                lines.append(f"             {assumption}")
+
+    # File path
+    lines.append("")
+    lines.append(f" Full JSON : {extracted_path}")
+    lines.append("─" * 60)
+
+    # Print summary
+    print("\n".join(lines))
+
+    # Prompt user
+    while True:
+        response = input("Proceed with validation? [Y/n]: ").strip().lower()
+        if response in ("", "y", "yes"):
+            return True
+        elif response in ("n", "no", "q", "quit"):
+            return False
+        else:
+            print("Please enter 'y' to continue or 'n' to abort.")
+
+
 def run(args) -> int:
     """
     Run the complete pipeline.
@@ -94,6 +167,12 @@ def run(args) -> int:
         extracted_path = output_dir / "extracted.json"
         extracted_path.write_text(spec.model_dump_json(indent=2))
         logger.info(f"Saved extracted specification to {extracted_path}")
+
+        # Human review (unless --no-review)
+        if not args.no_review:
+            if not prompt_human_review(spec, extracted_path):
+                logger.info("Review aborted by user")
+                return 1
 
         # Validate
         logger.info("Validating component specification...")
