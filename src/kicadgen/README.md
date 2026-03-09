@@ -19,14 +19,16 @@ Command-line interface using argparse. Entry point for the `kicadgen` command.
 - `--dry-run` (flag): Skip file writing, only show validation report
 
 ### `schema.py`
-Pydantic v2 data models representing component specifications.
+Pydantic v2 data models representing normalized component specifications.
 
 **Classes:**
-- `PinSpec`: Single pin specification (number, name, type)
-- `MetaSpec`: Component metadata (part_number, package_type, confidence)
-- `FootprintSpec`: Footprint dimensions and pad layout
-- `SymbolSpec`: Symbol pin definitions
-- `ComponentSpec`: Complete component specification (meta + footprint + symbol)
+- `PadSpec`: Single pad with explicit coordinates (number, x_mm, y_mm, width_mm, length_mm, drill_mm, shape)
+- `ComponentInfo`: Component metadata (name, manufacturer, part_number, description, package_type, datasheet_source)
+- `MetadataSpec`: AI extraction metadata (extraction_confidence, missing_fields, assumptions, source_pages)
+- `PinSpec`: Pin with type and placement hints (number, name, type, side, unit)
+- `FootprintSpec`: Footprint with pad coordinates (pin_count, pins_per_side, pad_type, pad_shape, pitch_mm, pads, body dimensions)
+- `SymbolSpec`: Symbol specification (pin_count, pin_pitch_grid, reference_prefix, pins)
+- `ComponentSpec`: Complete normalized specification (component, symbol, footprint, metadata)
 
 ### `validator.py`
 Validates extracted component specifications without raising exceptions.
@@ -35,14 +37,15 @@ Validates extracted component specifications without raising exceptions.
 - `ValidationReport`: Contains errors and warnings lists
 
 **Functions:**
-- `validate_component(spec)`: Checks geometric consistency, pin counts, units, and constraints
+- `validate_component(spec)`: Checks geometric consistency, pin counts, confidence, and constraints
 
 **Validation Rules:**
-1. Geometric: `pitch × (pins_per_side - 1) ≈ body_length` (±0.5mm tolerance)
-2. Pitch minimum: 0.2mm
-3. Pad width constraint: must not exceed pitch
-4. Pin count: footprint and symbol must match
-5. Unit heuristics: warns on suspected mil or inch values
+1. Geometric: `pitch × (pins_per_side - 1) ≈ body_length` (±0.5mm tolerance, when provided)
+2. Pitch minimum: 0.2mm (when provided)
+3. Pad width constraint: per-pad width must not exceed pitch
+4. Pin count: footprint.pin_count must match len(symbol.pins)
+5. Confidence check: warns if extraction_confidence < 0.8
+6. Unit heuristics: warns on suspected mil or inch values
 
 ### `pdf_processor.py`
 PDF handling using PyMuPDF for page selection and image rendering.
@@ -69,15 +72,17 @@ Abstract VLM client interface with three concrete implementations.
 - `GEMINI_API_KEY`: For Google Gemini
 
 ### `extractor.py`
-VLM-based extraction of component specifications from datasheet images.
+VLM-based extraction of normalized component specifications from datasheet images.
 
 **Classes:**
 - `ExtractionError`: Raised when extraction fails after max retries
 
 **Functions:**
-- `build_prompt(part_number)`: Constructs the VLM extraction prompt
-- `parse_json_from_response(text)`: Parses JSON from VLM response (handles markdown)
-- `extract(client, images, part_number, max_retries)`: Orchestrates extraction with retry logic
+- `build_prompt(part_number)`: Constructs the VLM extraction prompt with normalized JSON schema
+- `parse_json_from_response(text)`: Parses JSON from VLM response (handles markdown fences)
+- `extract(client, images, part_number, max_retries)`: Orchestrates extraction with retry logic, returns ComponentSpec
+
+**Output Schema:** Matches the normalized schema from `schema.py` with component, symbol, footprint, and metadata sections
 
 ### `pipeline.py`
 Orchestrates the complete workflow from PDF to KiCAD files.
