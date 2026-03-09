@@ -1,38 +1,51 @@
 {
-  "meta": {
+  "component": {
+    "name": "QFN16 Test Component",
+    "manufacturer": "TestCorp",
     "part_number": "TEST-QFN16",
-    "package_type": "QFN",
-    "confidence": 0.95
+    "description": "Test 16-pin QFN package component",
+    "package_type": "QFN-16",
+    "datasheet_source": "test_datasheet.pdf"
+  },
+  "symbol": {
+    "pin_count": 16,
+    "pin_pitch_grid": 2.54,
+    "reference_prefix": "U",
+    "pins": [
+      {"number": "1", "name": "PIN1", "type": "SIGNAL", "side": "left", "unit": 1},
+      {"number": "2", "name": "PIN2", "type": "SIGNAL", "side": "left", "unit": 1},
+      {"number": "3", "name": "PIN3", "type": "SIGNAL", "side": "left", "unit": 1},
+      {"number": "4", "name": "PIN4", "type": "SIGNAL", "side": "left", "unit": 1},
+      {"number": "5", "name": "PIN5", "type": "SIGNAL", "side": "left", "unit": 1},
+      {"number": "6", "name": "PIN6", "type": "SIGNAL", "side": "left", "unit": 1},
+      {"number": "7", "name": "PIN7", "type": "SIGNAL", "side": "left", "unit": 1},
+      {"number": "8", "name": "PIN8", "type": "SIGNAL", "side": "left", "unit": 1},
+      {"number": "9", "name": "PIN9", "type": "SIGNAL", "side": "right", "unit": 1},
+      {"number": "10", "name": "PIN10", "type": "SIGNAL", "side": "right", "unit": 1},
+      {"number": "11", "name": "PIN11", "type": "SIGNAL", "side": "right", "unit": 1},
+      {"number": "12", "name": "PIN12", "type": "SIGNAL", "side": "right", "unit": 1},
+      {"number": "13", "name": "PIN13", "type": "SIGNAL", "side": "right", "unit": 1},
+      {"number": "14", "name": "PIN14", "type": "SIGNAL", "side": "right", "unit": 1},
+      {"number": "15", "name": "PIN15", "type": "SIGNAL", "side": "right", "unit": 1},
+      {"number": "16", "name": "PIN16", "type": "SIGNAL", "side": "right", "unit": 1}
+    ]
   },
   "footprint": {
     "pin_count": 16,
     "pins_per_side": 4,
+    "pad_type": "smd",
+    "pad_shape": "rectangle",
     "pitch_mm": 0.5,
-    "pad_width_mm": 0.3,
-    "pad_length_mm": 0.8,
+    "pads": [],
     "body_width_mm": 3.0,
     "body_length_mm": 2.5,
+    "body_height_mm": 0.8,
     "pin1_location": "top-left"
   },
-  "symbol": {
-    "reference": "U",
-    "pins": [
-      {"number": "1", "name": "PIN1", "type": "SIGNAL"},
-      {"number": "2", "name": "PIN2", "type": "SIGNAL"},
-      {"number": "3", "name": "PIN3", "type": "SIGNAL"},
-      {"number": "4", "name": "PIN4", "type": "SIGNAL"},
-      {"number": "5", "name": "PIN5", "type": "SIGNAL"},
-      {"number": "6", "name": "PIN6", "type": "SIGNAL"},
-      {"number": "7", "name": "PIN7", "type": "SIGNAL"},
-      {"number": "8", "name": "PIN8", "type": "SIGNAL"},
-      {"number": "9", "name": "PIN9", "type": "SIGNAL"},
-      {"number": "10", "name": "PIN10", "type": "SIGNAL"},
-      {"number": "11", "name": "PIN11", "type": "SIGNAL"},
-      {"number": "12", "name": "PIN12", "type": "SIGNAL"},
-      {"number": "13", "name": "PIN13", "type": "SIGNAL"},
-      {"number": "14", "name": "PIN14", "type": "SIGNAL"},
-      {"number": "15", "name": "PIN15", "type": "SIGNAL"},
-      {"number": "16", "name": "PIN16", "type": "SIGNAL"}
-    ]
+  "metadata": {
+    "extraction_confidence": 0.95,
+    "missing_fields": [],
+    "assumptions": [],
+    "source_pages": [3]
   }
 }

@@ -105,9 +105,9 @@ def run(args) -> int:
         logger.info(f"Saved validation report to {report_path}")
 
         # Check for confidence warning
-        if spec.meta.confidence < 0.8:
+        if spec.metadata.extraction_confidence < 0.8:
             logger.warning(
-                f"Low confidence ({spec.meta.confidence:.1%}): results may be inaccurate"
+                f"Low confidence ({spec.metadata.extraction_confidence:.1%}): results may be inaccurate"
             )
 
         # Check validation result

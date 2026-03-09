@@ -3,45 +3,76 @@
 from pydantic import BaseModel, Field
 
 
+class PadSpec(BaseModel):
+    """Specification for a single footprint pad."""
+
+    number: str = Field(..., description="Pad number (e.g., '1', 'A1')")
+    x_mm: float = Field(..., description="Pad X coordinate in millimeters (origin at package center)")
+    y_mm: float = Field(..., description="Pad Y coordinate in millimeters (origin at package center)")
+    width_mm: float | None = Field(default=None, description="Pad width in millimeters")
+    length_mm: float | None = Field(default=None, description="Pad length in millimeters")
+    drill_mm: float | None = Field(default=None, description="Drill hole diameter in millimeters (for through-hole)")
+    shape: str = Field(default="rectangle", description="Pad shape (e.g., 'rectangle', 'oval', 'circle')")
+
+
 class PinSpec(BaseModel):
-    """Specification for a single pin."""
+    """Specification for a single symbol pin."""
 
     number: str = Field(..., description="Pin number (e.g., '1', 'A1')")
     name: str = Field(..., description="Pin name (e.g., 'VCC', 'GND')")
-    type: str = Field(..., description="Pin type (e.g., 'POWER', 'GND', 'SIGNAL')")
+    type: str = Field(..., description="Pin type (e.g., 'input', 'output', 'power_in', 'power_out', 'passive', 'bidirectional')")
+    side: str | None = Field(default=None, description="Symbol placement (left, right, top, bottom)")
+    unit: int = Field(default=1, description="Symbol unit index (for multi-unit components)")
 
 
-class MetaSpec(BaseModel):
-    """Metadata about the extracted component."""
+class ComponentInfo(BaseModel):
+    """General information about the component."""
 
-    part_number: str = Field(..., description="Component part number")
-    package_type: str = Field(..., description="Package type (e.g., 'QFN', 'BGA')")
-    confidence: float = Field(..., ge=0.0, le=1.0, description="Extraction confidence (0.0-1.0)")
+    name: str = Field(..., description="Human readable component name")
+    manufacturer: str = Field(..., description="Manufacturer name")
+    part_number: str = Field(..., description="Official part number")
+    description: str = Field(..., description="Short functional description")
+    package_type: str = Field(..., description="Package name (e.g., SOIC-8, QFN-32)")
+    datasheet_source: str = Field(..., description="Datasheet filename or URL")
 
 
-class FootprintSpec(BaseModel):
-    """Footprint specification for KiCAD generation."""
+class MetadataSpec(BaseModel):
+    """AI extraction metadata and traceability."""
 
-    pin_count: int = Field(..., gt=0, description="Total number of pins")
-    pins_per_side: int = Field(..., gt=0, description="Number of pins per side (for rectangular packages)")
-    pitch_mm: float = Field(..., gt=0, description="Pin pitch in millimeters")
-    pad_width_mm: float = Field(..., gt=0, description="Pad width in millimeters")
-    pad_length_mm: float = Field(..., gt=0, description="Pad length in millimeters")
-    body_width_mm: float = Field(..., gt=0, description="Package body width in millimeters")
-    body_length_mm: float = Field(..., gt=0, description="Package body length in millimeters")
-    pin1_location: str = Field(default="top-left", description="Location of pin 1 (e.g., 'top-left')")
+    extraction_confidence: float = Field(..., ge=0.0, le=1.0, description="AI confidence score (0.0-1.0)")
+    missing_fields: list[str] = Field(default_factory=list, description="Fields not found in datasheet")
+    assumptions: list[str] = Field(default_factory=list, description="Any inferred values and assumptions")
+    source_pages: list[int] = Field(default_factory=list, description="Datasheet page numbers used")
 
 
 class SymbolSpec(BaseModel):
     """Symbol specification for KiCAD generation."""
 
-    reference: str = Field(default="U", description="Reference designator prefix")
+    pin_count: int = Field(..., gt=0, description="Total number of pins in symbol")
+    pin_pitch_grid: float = Field(default=2.54, description="Pin pitch grid in millimeters")
+    reference_prefix: str = Field(default="U", description="Reference designator prefix (e.g., 'U', 'R', 'C')")
     pins: list[PinSpec] = Field(..., description="List of pins in the symbol")
+
+
+class FootprintSpec(BaseModel):
+    """Footprint specification for KiCAD generation."""
+
+    pin_count: int = Field(..., gt=0, description="Total number of pads")
+    pins_per_side: int | None = Field(default=None, description="Number of pins per side (for rectangular packages)")
+    pad_type: str = Field(..., description="Pad type (smd or through_hole)")
+    pad_shape: str = Field(default="rectangle", description="Default pad shape (rectangle, oval, circle)")
+    pitch_mm: float | None = Field(default=None, description="Pin pitch in millimeters")
+    pads: list[PadSpec] = Field(default_factory=list, description="Explicit pad coordinates and dimensions")
+    body_width_mm: float | None = Field(default=None, description="Package body width in millimeters")
+    body_length_mm: float | None = Field(default=None, description="Package body length in millimeters")
+    body_height_mm: float | None = Field(default=None, description="Package body height in millimeters")
+    pin1_location: str | None = Field(default=None, description="Location of pin 1 (e.g., 'top-left')")
 
 
 class ComponentSpec(BaseModel):
     """Complete specification for a component."""
 
-    meta: MetaSpec
-    footprint: FootprintSpec
+    component: ComponentInfo
     symbol: SymbolSpec
+    footprint: FootprintSpec
+    metadata: MetadataSpec

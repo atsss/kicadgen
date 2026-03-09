@@ -7,6 +7,8 @@ def generate_symbol_sexpr(spec: SymbolSpec, part_number: str) -> str:
     """
     Generate a .kicad_sym S-expression string for a component symbol.
 
+    Uses pin.side field when set; falls back to left/right split when not.
+
     Args:
         spec: SymbolSpec containing pin information
         part_number: Component part number for labeling
@@ -17,21 +19,44 @@ def generate_symbol_sexpr(spec: SymbolSpec, part_number: str) -> str:
     lines = [
         "(symbol \"{}\"".format(part_number),
         "  (pin_numbers hide)",
-        "  (property \"Reference\" \"{}\" (id 0) (at 0 0 0))".format(spec.reference),
+        "  (property \"Reference\" \"{}\" (id 0) (at 0 0 0))".format(spec.reference_prefix),
         "  (property \"Value\" \"{}\" (id 1) (at 0 0 0))".format(part_number),
         "",
     ]
 
-    # Calculate pin positions (distribute on left and right)
-    pin_count = len(spec.pins)
-    left_pins = pin_count // 2
-    right_pins = pin_count - left_pins
+    # Determine pin placement
+    left_pins = []
+    right_pins = []
+    top_pins = []
+    bottom_pins = []
+
+    # Sort pins by explicit side or default to split
+    has_explicit_sides = any(pin.side is not None for pin in spec.pins)
+
+    if has_explicit_sides:
+        for pin in spec.pins:
+            if pin.side == "left":
+                left_pins.append(pin)
+            elif pin.side == "right":
+                right_pins.append(pin)
+            elif pin.side == "top":
+                top_pins.append(pin)
+            elif pin.side == "bottom":
+                bottom_pins.append(pin)
+            else:
+                # Default to left if side is invalid
+                left_pins.append(pin)
+    else:
+        # Default: split left and right
+        pin_count = len(spec.pins)
+        split_idx = pin_count // 2
+        left_pins = spec.pins[:split_idx]
+        right_pins = spec.pins[split_idx:]
 
     # Body dimensions (arbitrary, but consistent)
+    pin_count = len(spec.pins)
     body_height = max(20, pin_count)
     body_width = 10
-    x_offset = -body_width / 2
-    y_offset = body_height / 2
 
     # Add symbol drawing
     lines.extend(
@@ -46,23 +71,43 @@ def generate_symbol_sexpr(spec: SymbolSpec, part_number: str) -> str:
         ]
     )
 
-    # Add pins
-    for i, pin in enumerate(spec.pins):
-        if i < left_pins:
-            # Left side pins
-            y = y_offset - (i * body_height / max(left_pins, 1))
+    # Add left side pins
+    if left_pins:
+        for i, pin in enumerate(left_pins):
+            y = (body_height / 2) - (i + 1) * (body_height / (len(left_pins) + 1))
             lines.append(
                 "    (pin passive line (at {:.1f} {:.1f} 0) (length 2.54) (name \"{}\" (effects (font (size 1.27 1.27) (thickness 0.15)))) (number \"{}\" (effects (font (size 1.27 1.27) (thickness 0.15)))))".format(
                     -body_width / 2 - 2.54, y, pin.name, pin.number
                 )
             )
-        else:
-            # Right side pins
-            pin_idx = i - left_pins
-            y = y_offset - (pin_idx * body_height / max(right_pins, 1))
+
+    # Add right side pins
+    if right_pins:
+        for i, pin in enumerate(right_pins):
+            y = (body_height / 2) - (i + 1) * (body_height / (len(right_pins) + 1))
             lines.append(
                 "    (pin passive line (at {:.1f} {:.1f} 180) (length 2.54) (name \"{}\" (effects (font (size 1.27 1.27) (thickness 0.15)))) (number \"{}\" (effects (font (size 1.27 1.27) (thickness 0.15)))))".format(
                     body_width / 2 + 2.54, y, pin.name, pin.number
+                )
+            )
+
+    # Add top side pins (if any)
+    if top_pins:
+        for i, pin in enumerate(top_pins):
+            x = (-body_width / 2) + (i + 1) * (body_width / (len(top_pins) + 1))
+            lines.append(
+                "    (pin passive line (at {:.1f} {:.1f} 270) (length 2.54) (name \"{}\" (effects (font (size 1.27 1.27) (thickness 0.15)))) (number \"{}\" (effects (font (size 1.27 1.27) (thickness 0.15)))))".format(
+                    x, body_height / 2 + 2.54, pin.name, pin.number
+                )
+            )
+
+    # Add bottom side pins (if any)
+    if bottom_pins:
+        for i, pin in enumerate(bottom_pins):
+            x = (-body_width / 2) + (i + 1) * (body_width / (len(bottom_pins) + 1))
+            lines.append(
+                "    (pin passive line (at {:.1f} {:.1f} 90) (length 2.54) (name \"{}\" (effects (font (size 1.27 1.27) (thickness 0.15)))) (number \"{}\" (effects (font (size 1.27 1.27) (thickness 0.15)))))".format(
+                    x, -(body_height / 2 + 2.54), pin.name, pin.number
                 )
             )
 

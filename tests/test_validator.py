@@ -2,7 +2,7 @@
 
 import pytest
 
-from kicadgen.schema import ComponentSpec, FootprintSpec, MetaSpec, PinSpec, SymbolSpec
+from kicadgen.schema import ComponentInfo, ComponentSpec, FootprintSpec, MetadataSpec, PadSpec, PinSpec, SymbolSpec
 from kicadgen.validator import validate_component
 
 
@@ -10,27 +10,40 @@ from kicadgen.validator import validate_component
 def valid_spec() -> ComponentSpec:
     """Create a valid component specification for testing."""
     return ComponentSpec(
-        meta=MetaSpec(
+        component=ComponentInfo(
+            name="Test IC",
+            manufacturer="TestCorp",
             part_number="TEST-QFN16",
+            description="Test component",
             package_type="QFN",
-            confidence=0.95,
+            datasheet_source="test.pdf",
+        ),
+        symbol=SymbolSpec(
+            pin_count=16,
+            pin_pitch_grid=2.54,
+            reference_prefix="U",
+            pins=[
+                PinSpec(number=str(i), name=f"PIN{i}", type="SIGNAL", side="left" if i <= 8 else "right")
+                for i in range(1, 17)
+            ],
         ),
         footprint=FootprintSpec(
             pin_count=16,
             pins_per_side=4,
+            pad_type="smd",
+            pad_shape="rectangle",
             pitch_mm=0.5,
-            pad_width_mm=0.3,
-            pad_length_mm=0.8,
+            pads=[],
             body_width_mm=3.0,
             body_length_mm=2.5,
+            body_height_mm=0.8,
             pin1_location="top-left",
         ),
-        symbol=SymbolSpec(
-            reference="U",
-            pins=[
-                PinSpec(number=str(i), name=f"PIN{i}", type="SIGNAL")
-                for i in range(1, 17)
-            ],
+        metadata=MetadataSpec(
+            extraction_confidence=0.95,
+            missing_fields=[],
+            assumptions=[],
+            source_pages=[3],
         ),
     )
 
@@ -62,7 +75,10 @@ def test_pitch_too_small_error(valid_spec):
 
 def test_pad_width_exceeds_pitch_error(valid_spec):
     """Test that pad width > pitch is rejected."""
-    valid_spec.footprint.pad_width_mm = 0.6  # > pitch of 0.5
+    # Add a pad with width > pitch
+    valid_spec.footprint.pads = [
+        PadSpec(number="1", x_mm=0, y_mm=0, width_mm=0.6, length_mm=0.8, shape="rectangle")
+    ]
     report = validate_component(valid_spec)
     assert not report.is_valid
     assert any("Invalid pad width" in error for error in report.errors)
@@ -138,21 +154,27 @@ def test_validation_never_raises():
     # Test with incomplete/malformed data shouldn't raise
     try:
         spec = ComponentSpec(
-            meta=MetaSpec(part_number="TEST", package_type="QFN", confidence=0.5),
+            component=ComponentInfo(
+                name="Test", manufacturer="Corp", part_number="TEST",
+                description="Test", package_type="QFN", datasheet_source="test.pdf"
+            ),
             footprint=FootprintSpec(
                 pin_count=8,
                 pins_per_side=2,
+                pad_type="smd",
+                pad_shape="rectangle",
                 pitch_mm=0.5,
-                pad_width_mm=0.3,
-                pad_length_mm=0.8,
+                pads=[],
                 body_width_mm=3.0,
                 body_length_mm=0.5,  # Invalid value
                 pin1_location="top-left",
             ),
             symbol=SymbolSpec(
-                reference="U",
+                pin_count=1,
+                reference_prefix="U",
                 pins=[PinSpec(number="1", name="A", type="SIGNAL")],
             ),
+            metadata=MetadataSpec(extraction_confidence=0.5),
         )
         report = validate_component(spec)
         # Should not raise; errors should be in report

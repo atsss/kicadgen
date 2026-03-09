@@ -10,9 +10,11 @@ from kicadgen.schema import PinSpec, SymbolSpec
 def qfn_symbol() -> SymbolSpec:
     """Create a sample QFN16 symbol spec."""
     return SymbolSpec(
-        reference="U",
+        pin_count=16,
+        pin_pitch_grid=2.54,
+        reference_prefix="U",
         pins=[
-            PinSpec(number=str(i), name=f"PIN{i}", type="SIGNAL")
+            PinSpec(number=str(i), name=f"PIN{i}", type="SIGNAL", side="left" if i <= 8 else "right", unit=1)
             for i in range(1, 17)
         ],
     )
@@ -55,8 +57,9 @@ def test_generate_symbol_has_all_pins(qfn_symbol):
 def test_generate_symbol_single_pin():
     """Test symbol with single pin."""
     symbol = SymbolSpec(
-        reference="U",
-        pins=[PinSpec(number="1", name="VCC", type="POWER")],
+        pin_count=1,
+        reference_prefix="U",
+        pins=[PinSpec(number="1", name="VCC", type="POWER", unit=1)],
     )
     result = generate_symbol_sexpr(symbol, "SIMPLE")
     assert "VCC" in result
@@ -81,8 +84,9 @@ def test_generate_symbol_pin_numbers_included(qfn_symbol):
 def test_generate_symbol_different_part_numbers():
     """Test that different part numbers are correctly included."""
     symbol = SymbolSpec(
-        reference="U",
-        pins=[PinSpec(number="1", name="PIN", type="SIGNAL")],
+        pin_count=1,
+        reference_prefix="U",
+        pins=[PinSpec(number="1", name="PIN", type="SIGNAL", unit=1)],
     )
 
     result1 = generate_symbol_sexpr(symbol, "PART-A")
@@ -97,10 +101,10 @@ def test_generate_symbol_different_part_numbers():
 def test_generate_symbol_large_pin_count():
     """Test symbol with large pin count."""
     pins = [
-        PinSpec(number=str(i), name=f"PIN{i}", type="SIGNAL")
+        PinSpec(number=str(i), name=f"PIN{i}", type="SIGNAL", unit=1)
         for i in range(1, 49)
     ]
-    symbol = SymbolSpec(reference="U", pins=pins)
+    symbol = SymbolSpec(pin_count=48, reference_prefix="U", pins=pins)
     result = generate_symbol_sexpr(symbol, "BIG")
 
     assert "(pin" in result or "pin" in result.lower()
@@ -110,12 +114,13 @@ def test_generate_symbol_large_pin_count():
 def test_generate_symbol_special_pin_types():
     """Test symbol with different pin types."""
     symbol = SymbolSpec(
-        reference="U",
+        pin_count=4,
+        reference_prefix="U",
         pins=[
-            PinSpec(number="1", name="VCC", type="POWER"),
-            PinSpec(number="2", name="GND", type="GND"),
-            PinSpec(number="3", name="DATA", type="SIGNAL"),
-            PinSpec(number="4", name="CLK", type="SIGNAL"),
+            PinSpec(number="1", name="VCC", type="POWER", unit=1),
+            PinSpec(number="2", name="GND", type="GND", unit=1),
+            PinSpec(number="3", name="DATA", type="SIGNAL", unit=1),
+            PinSpec(number="4", name="CLK", type="SIGNAL", unit=1),
         ],
     )
     result = generate_symbol_sexpr(symbol, "MIXED")
@@ -128,8 +133,9 @@ def test_generate_symbol_special_pin_types():
 def test_generate_symbol_reference_field():
     """Test that reference field is properly set."""
     symbol = SymbolSpec(
-        reference="IC",
-        pins=[PinSpec(number="1", name="A", type="SIGNAL")],
+        pin_count=1,
+        reference_prefix="IC",
+        pins=[PinSpec(number="1", name="A", type="SIGNAL", unit=1)],
     )
     result = generate_symbol_sexpr(symbol, "TEST")
     assert "IC" in result
@@ -138,16 +144,18 @@ def test_generate_symbol_reference_field():
 def test_generate_symbol_vs_different_pin_counts():
     """Test that different pin counts produce different outputs."""
     symbol_4 = SymbolSpec(
-        reference="U",
+        pin_count=4,
+        reference_prefix="U",
         pins=[
-            PinSpec(number=str(i), name=f"PIN{i}", type="SIGNAL")
+            PinSpec(number=str(i), name=f"PIN{i}", type="SIGNAL", unit=1)
             for i in range(1, 5)
         ],
     )
     symbol_8 = SymbolSpec(
-        reference="U",
+        pin_count=8,
+        reference_prefix="U",
         pins=[
-            PinSpec(number=str(i), name=f"PIN{i}", type="SIGNAL")
+            PinSpec(number=str(i), name=f"PIN{i}", type="SIGNAL", unit=1)
             for i in range(1, 9)
         ],
     )

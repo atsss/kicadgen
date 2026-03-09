@@ -21,7 +21,10 @@ def test_build_prompt():
 
 def test_parse_json_from_response_plain():
     """Test JSON parsing from plain response."""
-    json_data = {"meta": {"part_number": "TEST", "package_type": "QFN", "confidence": 0.9}}
+    json_data = {
+        "component": {"name": "Test", "manufacturer": "Corp", "part_number": "TEST", "description": "Test", "package_type": "QFN", "datasheet_source": "test.pdf"},
+        "metadata": {"extraction_confidence": 0.9, "missing_fields": [], "assumptions": [], "source_pages": []}
+    }
     response = json.dumps(json_data)
     parsed = parse_json_from_response(response)
     assert parsed == json_data
@@ -29,7 +32,10 @@ def test_parse_json_from_response_plain():
 
 def test_parse_json_from_response_with_markdown():
     """Test JSON parsing with markdown code fences."""
-    json_data = {"meta": {"part_number": "TEST", "package_type": "QFN", "confidence": 0.9}}
+    json_data = {
+        "component": {"name": "Test", "manufacturer": "Corp", "part_number": "TEST", "description": "Test", "package_type": "QFN", "datasheet_source": "test.pdf"},
+        "metadata": {"extraction_confidence": 0.9, "missing_fields": [], "assumptions": [], "source_pages": []}
+    }
     response = "```json\n" + json.dumps(json_data) + "\n```"
     parsed = parse_json_from_response(response)
     assert parsed == json_data
@@ -37,7 +43,10 @@ def test_parse_json_from_response_with_markdown():
 
 def test_parse_json_from_response_with_plain_fence():
     """Test JSON parsing with plain code fence."""
-    json_data = {"meta": {"part_number": "TEST", "package_type": "QFN", "confidence": 0.9}}
+    json_data = {
+        "component": {"name": "Test", "manufacturer": "Corp", "part_number": "TEST", "description": "Test", "package_type": "QFN", "datasheet_source": "test.pdf"},
+        "metadata": {"extraction_confidence": 0.9, "missing_fields": [], "assumptions": [], "source_pages": []}
+    }
     response = "```\n" + json.dumps(json_data) + "\n```"
     parsed = parse_json_from_response(response)
     assert parsed == json_data
@@ -45,7 +54,10 @@ def test_parse_json_from_response_with_plain_fence():
 
 def test_parse_json_with_extra_whitespace():
     """Test JSON parsing with extra whitespace."""
-    json_data = {"meta": {"part_number": "TEST", "package_type": "QFN", "confidence": 0.9}}
+    json_data = {
+        "component": {"name": "Test", "manufacturer": "Corp", "part_number": "TEST", "description": "Test", "package_type": "QFN", "datasheet_source": "test.pdf"},
+        "metadata": {"extraction_confidence": 0.9, "missing_fields": [], "assumptions": [], "source_pages": []}
+    }
     response = "  \n" + json.dumps(json_data) + "  \n"
     parsed = parse_json_from_response(response)
     assert parsed == json_data
@@ -62,27 +74,40 @@ def test_extract_success():
     # Create mock client
     mock_client = MagicMock()
     valid_response = {
-        "meta": {
+        "component": {
+            "name": "Test IC",
+            "manufacturer": "TestCorp",
             "part_number": "TEST-QFN16",
+            "description": "Test",
             "package_type": "QFN",
-            "confidence": 0.95,
+            "datasheet_source": "test.pdf",
         },
         "footprint": {
             "pin_count": 16,
             "pins_per_side": 4,
+            "pad_type": "smd",
+            "pad_shape": "rectangle",
             "pitch_mm": 0.5,
-            "pad_width_mm": 0.3,
-            "pad_length_mm": 0.8,
+            "pads": [],
             "body_width_mm": 3.0,
             "body_length_mm": 2.5,
+            "body_height_mm": 0.8,
             "pin1_location": "top-left",
         },
         "symbol": {
-            "reference": "U",
+            "pin_count": 16,
+            "pin_pitch_grid": 2.54,
+            "reference_prefix": "U",
             "pins": [
-                {"number": str(i), "name": f"PIN{i}", "type": "SIGNAL"}
+                {"number": str(i), "name": f"PIN{i}", "type": "SIGNAL", "side": "left" if i <= 8 else "right", "unit": 1}
                 for i in range(1, 17)
             ],
+        },
+        "metadata": {
+            "extraction_confidence": 0.95,
+            "missing_fields": [],
+            "assumptions": [],
+            "source_pages": [3],
         },
     }
     mock_client.call.return_value = json.dumps(valid_response)
@@ -90,7 +115,7 @@ def test_extract_success():
     spec = extract(mock_client, [b"fake_image"], "TEST-QFN16", max_retries=3)
 
     assert isinstance(spec, ComponentSpec)
-    assert spec.meta.part_number == "TEST-QFN16"
+    assert spec.component.part_number == "TEST-QFN16"
     assert spec.footprint.pin_count == 16
 
 
@@ -98,27 +123,40 @@ def test_extract_retry_on_invalid_json():
     """Test that extraction retries on invalid JSON."""
     mock_client = MagicMock()
     valid_response = {
-        "meta": {
+        "component": {
+            "name": "Test",
+            "manufacturer": "Corp",
             "part_number": "TEST",
+            "description": "Test",
             "package_type": "QFN",
-            "confidence": 0.9,
+            "datasheet_source": "test.pdf",
         },
         "footprint": {
             "pin_count": 8,
             "pins_per_side": 2,
+            "pad_type": "smd",
+            "pad_shape": "rectangle",
             "pitch_mm": 0.5,
-            "pad_width_mm": 0.3,
-            "pad_length_mm": 0.8,
+            "pads": [],
             "body_width_mm": 3.0,
             "body_length_mm": 1.5,
+            "body_height_mm": 0.8,
             "pin1_location": "top-left",
         },
         "symbol": {
-            "reference": "U",
+            "pin_count": 8,
+            "pin_pitch_grid": 2.54,
+            "reference_prefix": "U",
             "pins": [
-                {"number": str(i), "name": f"PIN{i}", "type": "SIGNAL"}
+                {"number": str(i), "name": f"PIN{i}", "type": "SIGNAL", "unit": 1}
                 for i in range(1, 9)
             ],
+        },
+        "metadata": {
+            "extraction_confidence": 0.9,
+            "missing_fields": [],
+            "assumptions": [],
+            "source_pages": [],
         },
     }
 
@@ -148,27 +186,40 @@ def test_extract_with_markdown_response():
     """Test extraction handles markdown-wrapped JSON."""
     mock_client = MagicMock()
     valid_response = {
-        "meta": {
+        "component": {
+            "name": "Test",
+            "manufacturer": "Corp",
             "part_number": "TEST",
+            "description": "Test",
             "package_type": "QFN",
-            "confidence": 0.9,
+            "datasheet_source": "test.pdf",
         },
         "footprint": {
             "pin_count": 8,
             "pins_per_side": 2,
+            "pad_type": "smd",
+            "pad_shape": "rectangle",
             "pitch_mm": 0.5,
-            "pad_width_mm": 0.3,
-            "pad_length_mm": 0.8,
+            "pads": [],
             "body_width_mm": 3.0,
             "body_length_mm": 1.5,
+            "body_height_mm": 0.8,
             "pin1_location": "top-left",
         },
         "symbol": {
-            "reference": "U",
+            "pin_count": 8,
+            "pin_pitch_grid": 2.54,
+            "reference_prefix": "U",
             "pins": [
-                {"number": str(i), "name": f"PIN{i}", "type": "SIGNAL"}
+                {"number": str(i), "name": f"PIN{i}", "type": "SIGNAL", "unit": 1}
                 for i in range(1, 9)
             ],
+        },
+        "metadata": {
+            "extraction_confidence": 0.9,
+            "missing_fields": [],
+            "assumptions": [],
+            "source_pages": [],
         },
     }
     markdown_response = "```json\n" + json.dumps(valid_response) + "\n```"

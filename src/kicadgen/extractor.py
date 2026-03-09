@@ -24,30 +24,55 @@ def build_prompt(part_number: str) -> str:
         Formatted prompt string
     """
     json_schema = """{
-  "meta": {
-    "part_number": "string (e.g., 'STM32H743')",
-    "package_type": "string (e.g., 'QFN', 'BGA')",
-    "confidence": "number between 0.0 and 1.0"
-  },
-  "footprint": {
-    "pin_count": "integer (total number of pins)",
-    "pins_per_side": "integer (for rectangular packages)",
-    "pitch_mm": "number (pin pitch in millimeters)",
-    "pad_width_mm": "number (pad width in millimeters)",
-    "pad_length_mm": "number (pad length in millimeters)",
-    "body_width_mm": "number (body width in millimeters)",
-    "body_length_mm": "number (body length in millimeters)",
-    "pin1_location": "string (e.g., 'top-left')"
+  "component": {
+    "name": "string (e.g., 'STM32H743 Microcontroller')",
+    "manufacturer": "string (e.g., 'STMicroelectronics')",
+    "part_number": "string (official part number)",
+    "description": "string (short functional description)",
+    "package_type": "string (e.g., 'QFN-32', 'SOIC-8')",
+    "datasheet_source": "string (filename or URL)"
   },
   "symbol": {
-    "reference": "string (default 'U')",
+    "pin_count": "integer (total number of pins)",
+    "pin_pitch_grid": "number (grid spacing in mm, default 2.54)",
+    "reference_prefix": "string (e.g., 'U' for IC, 'R' for resistor)",
     "pins": [
       {
-        "number": "string (pin number, e.g., '1')",
-        "name": "string (pin name, e.g., 'VCC')",
-        "type": "string (pin type, e.g., 'POWER', 'GND', 'SIGNAL')"
+        "number": "string (pin number from datasheet)",
+        "name": "string (pin name, e.g., 'VCC', 'GND')",
+        "type": "string (input, output, passive, power_in, power_out, bidirectional)",
+        "side": "string or null (left, right, top, bottom for placement hint)",
+        "unit": "integer (symbol unit index, default 1)"
       }
     ]
+  },
+  "footprint": {
+    "pin_count": "integer (total number of pads)",
+    "pins_per_side": "integer or null (for rectangular packages)",
+    "pad_type": "string (smd or through_hole)",
+    "pad_shape": "string (rectangle, oval, circle)",
+    "pitch_mm": "number or null (pin pitch in millimeters)",
+    "pads": [
+      {
+        "number": "string (pad number)",
+        "x_mm": "number (x coordinate, origin at package center)",
+        "y_mm": "number (y coordinate, origin at package center)",
+        "width_mm": "number or null (pad width in mm)",
+        "length_mm": "number or null (pad length in mm)",
+        "drill_mm": "number or null (drill diameter for through-hole)",
+        "shape": "string (pad shape)"
+      }
+    ],
+    "body_width_mm": "number or null (package width in mm)",
+    "body_length_mm": "number or null (package length in mm)",
+    "body_height_mm": "number or null (package height in mm)",
+    "pin1_location": "string or null (location of pin 1, e.g., 'top-left')"
+  },
+  "metadata": {
+    "extraction_confidence": "number between 0.0 and 1.0 (0.8+ = high, <0.8 = uncertain)",
+    "missing_fields": ["list of field names not found in datasheet"],
+    "assumptions": ["list of values that were inferred or assumed"],
+    "source_pages": "[list of page numbers used from datasheet]"
   }
 }"""
 
@@ -58,9 +83,11 @@ Your task is to extract component specifications from the provided datasheet ima
 **CRITICAL RULES:**
 1. Return ONLY valid JSON - no markdown formatting, no "```json" wrappers, no explanations
 2. All dimensions must be in MILLIMETERS (mm) - convert from mils, inches, or other units
-3. Be precise: use actual values from the datasheet, never estimate or guess
-4. Missing or unclear values must be null, not zero
-5. confidence must be between 0.0 and 1.0 (0.8+ = high confidence, <0.8 = uncertainty)
+3. Be precise: use actual values from the datasheet, NEVER estimate or guess
+4. Missing or unclear values must be null, never zero or guessed
+5. extraction_confidence must be between 0.0 and 1.0 (0.8+ = high confidence, <0.8 = uncertainty)
+6. List ALL missing fields in metadata.missing_fields
+7. Document any assumptions or inferred values in metadata.assumptions
 
 **JSON Schema:**
 {json_schema}
