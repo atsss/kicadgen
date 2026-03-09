@@ -154,20 +154,23 @@ kicadgen/
 
 ### schema.py
 Core Pydantic v2 models (foundational):
-- `PinSpec(number, name, type)`
-- `MetaSpec(part_number, package_type, confidence)`
-- `FootprintSpec(pin_count, pins_per_side, pitch_mm, pad_width_mm, pad_length_mm, body_width_mm, body_length_mm, pin1_location)`
-- `SymbolSpec(reference="U", pins: list[PinSpec])`
-- `ComponentSpec(meta, footprint, symbol)`
+- `PadSpec(number, x_mm, y_mm, width_mm, length_mm, drill_mm, shape)` — explicit per-pad coordinates
+- `ComponentInfo(name, manufacturer, part_number, description, package_type, datasheet_source)` — component metadata
+- `MetadataSpec(extraction_confidence, missing_fields, assumptions, source_pages)` — AI extraction metadata
+- `PinSpec(number, name, type, side, unit)` — pin with optional placement hints
+- `SymbolSpec(reference_prefix="U", pin_count, pin_pitch_grid, pins: list[PinSpec])`
+- `FootprintSpec(pin_count, pins_per_side, pad_type, pad_shape, pitch_mm, pads, body_width_mm, body_length_mm, body_height_mm, pin1_location)`
+- `ComponentSpec(component, symbol, footprint, metadata)` — complete specification
 
 ### validator.py
 Depends on: `schema.py`
 
 Validates extracted data:
-- Geometric consistency: `pitch_mm × (pins_per_side - 1) ≈ body_length_mm` (±0.5mm tolerance)
+- Geometric consistency: `pitch_mm × (pins_per_side - 1) ≈ body_length_mm` (±0.5mm tolerance, when both values provided)
 - Pitch minimum: `pitch_mm >= 0.2mm`
-- Pad constraint: `pad_width_mm <= pitch_mm`
+- Pad constraint: per-pad `width_mm <= pitch_mm`
 - Pin count match: `pin_count == len(symbol.pins)`
+- Confidence check: `extraction_confidence < 0.8` triggers warning
 - Unit heuristics for mil/inch detection
 
 Returns `ValidationReport(errors: list[str], warnings: list[str])` without raising exceptions.
@@ -200,15 +203,18 @@ Functions:
 Depends on: `schema.py`
 
 Generates `.kicad_mod` S-expression:
-- QFN pad placement (edge pads + thermal pad)
-- Pad centers calculated from pitch, body dimensions, and overlap
+- **Explicit pad placement**: Uses `pads[].{x_mm, y_mm, width_mm, length_mm, shape}` when provided
+- **Fallback computed layout**: QFN layout from `pitch_mm`, `pins_per_side`, body dimensions when `pads` is empty
+- Pad type and shape from `pad_type` and `pad_shape` fields
 - Valid KiCAD 6+ format output
 
 ### generators/symbol.py
 Depends on: `schema.py`
 
 Generates `.kicad_sym` S-expression:
-- Pin distribution on left/right sides
+- **Pin placement hints**: Uses `pin.side` field when set (`left`/`right`/`top`/`bottom`)
+- **Fallback distribution**: Splits pins left/right when `side` is not set
+- Reference designator from `symbol.reference_prefix`
 - Valid KiCAD 6+ format output
 
 ### utils/tempfiles.py
@@ -280,39 +286,80 @@ kicadgen --help
 
 ---
 
-# 7. Intermediate JSON Schema
+# 7. Normalized JSON Schema
 
-## 6.1 Root Schema
+## 7.1 Root Schema
+
+The normalized JSON output follows this structure:
 
 ```json
 {
-  "meta": {
+  "component": {
+    "name": "",
+    "manufacturer": "",
     "part_number": "",
+    "description": "",
     "package_type": "",
-    "confidence": 0.0
-  },
-  "footprint": {
-    "pin_count": 0,
-    "pins_per_side": 0,
-    "pitch_mm": 0.0,
-    "pad_width_mm": 0.0,
-    "pad_length_mm": 0.0,
-    "body_width_mm": 0.0,
-    "body_length_mm": 0.0,
-    "pin1_location": ""
+    "datasheet_source": ""
   },
   "symbol": {
-    "reference": "U",
+    "pin_count": 0,
+    "pin_pitch_grid": 2.54,
+    "reference_prefix": "U",
     "pins": [
       {
         "number": "",
         "name": "",
-        "type": ""
+        "type": "",
+        "side": null,
+        "unit": 1
       }
     ]
+  },
+  "footprint": {
+    "pin_count": 0,
+    "pins_per_side": null,
+    "pad_type": "smd",
+    "pad_shape": "rectangle",
+    "pitch_mm": null,
+    "pads": [
+      {
+        "number": "",
+        "x_mm": 0.0,
+        "y_mm": 0.0,
+        "width_mm": null,
+        "length_mm": null,
+        "drill_mm": null,
+        "shape": ""
+      }
+    ],
+    "body_width_mm": null,
+    "body_length_mm": null,
+    "body_height_mm": null,
+    "pin1_location": null
+  },
+  "metadata": {
+    "extraction_confidence": 0.0,
+    "missing_fields": [],
+    "assumptions": [],
+    "source_pages": []
   }
 }
 ```
+
+## 7.2 Schema Field Descriptions
+
+- **component**: General device information from datasheet
+- **symbol**: Electrical schematic representation (pin layout, reference prefix)
+- **footprint**: Physical PCB layout (pad positions, body dimensions, pad types)
+- **metadata**: AI extraction confidence, missing fields, assumptions, source page numbers
+
+Key design principles:
+- All dimensions normalized to **millimeters (mm)**
+- Missing values are `null`, never zero or guessed
+- Pin numbering matches datasheet exactly
+- Pad coordinates use package center as origin
+- Per-pad explicit coordinates override computed layout
 
 ---
 
@@ -320,6 +367,7 @@ kicadgen --help
 
 ## 8.1 Geometric Consistency
 
+When `pins_per_side` and `pitch_mm` are provided:
 ```
 pitch_mm × (pins_per_side - 1)
 ≈ body_length_mm (tolerance ±0.5mm)
@@ -330,13 +378,20 @@ pitch_mm × (pins_per_side - 1)
 | Condition | Error |
 |------------|--------|
 | pitch_mm < 0.2 | Invalid |
-| pad_width_mm > pitch_mm | Invalid |
-| pin_count != number of symbol pins | Error |
+| per-pad width_mm > pitch_mm | Invalid |
+| pin_count != len(symbol.pins) | Error |
+| extraction_confidence < 0.8 | Warning |
 
 ## 8.3 Unit Validation
 
 - Suspected mil values must trigger a warning
 - Obvious inch values require conversion request
+
+## 8.4 Missing Field Handling
+
+- Fields not found in datasheet are marked `null`
+- Missing field names are listed in `metadata.missing_fields`
+- Any inferred or assumed values are documented in `metadata.assumptions`
 
 ---
 
@@ -385,7 +440,7 @@ out/
 | Situation | Behavior |
 |------------|------------|
 | Invalid JSON | Retry extraction |
-| confidence < 0.8 | Warning |
+| metadata.extraction_confidence < 0.8 | Warning |
 | Validation failure | Abort KiCAD generation |
 | API failure | Retry up to 3 times |
 
