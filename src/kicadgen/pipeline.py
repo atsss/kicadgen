@@ -4,7 +4,7 @@ import json
 import logging
 from pathlib import Path
 
-import fitz
+import fitz  # type: ignore[import-untyped]
 
 from kicadgen.extractor import extract
 from kicadgen.generators.footprint import generate_footprint_sexpr

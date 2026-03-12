@@ -1,6 +1,6 @@
 """PDF processing: page selection and image rendering."""
 
-import fitz  # PyMuPDF
+import fitz  # type: ignore[import-untyped]  # PyMuPDF
 
 
 def select_relevant_pages(doc: fitz.Document, keywords: list[str]) -> list[int]:

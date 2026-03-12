@@ -67,7 +67,7 @@ class OpenAIClient(VLMClient):
             ],
         )
 
-        return response.choices[0].message.content
+        return response.choices[0].message.content or ""
 
 
 class AnthropicClient(VLMClient):
@@ -111,7 +111,7 @@ class AnthropicClient(VLMClient):
             ],
         )
 
-        return response.content[0].text
+        return response.content[0].text or ""
 
 
 class GeminiClient(VLMClient):
@@ -128,7 +128,7 @@ class GeminiClient(VLMClient):
     def call(self, images: list[bytes], prompt: str) -> str:
         """Call Gemini 1.5 Pro with images and prompt."""
         # Convert bytes to PIL Images for Gemini
-        from PIL import Image
+        from PIL import Image  # type: ignore[import-not-found]
         from io import BytesIO
 
         image_objects = []
@@ -140,7 +140,7 @@ class GeminiClient(VLMClient):
         content: list[Any] = image_objects + [prompt]
 
         response = self.model.generate_content(content)
-        return response.text
+        return response.text or ""
 
 
 def get_client(model: str) -> VLMClient:

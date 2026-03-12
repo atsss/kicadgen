@@ -130,7 +130,7 @@ def parse_json_from_response(text: str) -> dict[str, Any]:
         text = text[:-3]  # Remove trailing ```
 
     text = text.strip()
-    return json.loads(text)
+    return json.loads(text)  # type: ignore[no-any-return]
 
 
 def extract(
