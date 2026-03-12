@@ -1,7 +1,5 @@
 """Pipeline orchestration for the complete extraction and generation workflow."""
 
-import json
-import logging
 from pathlib import Path
 
 import fitz  # type: ignore[import-untyped]
@@ -152,7 +150,7 @@ def run(args) -> int:
 
         # Render pages to images
         logger.info(f"Rendering {len(page_indices)} page(s) to PNG...")
-        with TempImageDir() as tmpdir:
+        with TempImageDir():
             images = render_pages_to_png(doc, page_indices, dpi=300)
 
             # Get VLM client
