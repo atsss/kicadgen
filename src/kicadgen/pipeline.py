@@ -1,5 +1,6 @@
 """Pipeline orchestration for the complete extraction and generation workflow."""
 
+from datetime import datetime
 from pathlib import Path
 
 import fitz  # type: ignore[import-untyped]
@@ -132,9 +133,13 @@ def run(args) -> int:
         logger.error(f"Input PDF not found: {input_path}")
         return 1
 
-    # Create output directory
+    # Create output directory with timestamp subdirectory
     output_dir = Path(args.out)
     output_dir.mkdir(parents=True, exist_ok=True)
+
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    timestamped_dir = output_dir / timestamp
+    timestamped_dir.mkdir(parents=True, exist_ok=True)
 
     try:
         # Load PDF
@@ -162,7 +167,7 @@ def run(args) -> int:
             spec = extract(client, images, args.part_number)
 
         # Save extracted JSON
-        extracted_path = output_dir / "extracted.json"
+        extracted_path = timestamped_dir / "extracted.json"
         extracted_path.write_text(spec.model_dump_json(indent=2))
         logger.info(f"Saved extracted specification to {extracted_path}")
 
@@ -177,7 +182,7 @@ def run(args) -> int:
         report = validate_component(spec)
 
         # Write validation report
-        report_path = output_dir / "validation_report.txt"
+        report_path = timestamped_dir / "validation_report.txt"
         write_validation_report(report, report_path)
         logger.info(f"Saved validation report to {report_path}")
 
@@ -198,13 +203,13 @@ def run(args) -> int:
 
             # Generate footprint
             footprint_sexpr = generate_footprint_sexpr(spec.footprint, args.part_number)
-            footprint_path = output_dir / f"{args.part_number}.kicad_mod"
+            footprint_path = timestamped_dir / f"{args.part_number}.kicad_mod"
             footprint_path.write_text(footprint_sexpr)
             logger.info(f"Saved footprint to {footprint_path}")
 
             # Generate symbol
             symbol_sexpr = generate_symbol_sexpr(spec.symbol, args.part_number)
-            symbol_path = output_dir / f"{args.part_number}.kicad_sym"
+            symbol_path = timestamped_dir / f"{args.part_number}.kicad_sym"
             symbol_path.write_text(symbol_sexpr)
             logger.info(f"Saved symbol to {symbol_path}")
         else:
