@@ -21,7 +21,7 @@ def generate_footprint_sexpr(spec: FootprintSpec, part_number: str) -> str:
     # Start building S-expression
     lines = [
         '(footprint "{}"'.format(part_number),
-        "  (version 6)",
+        "  (version 20241229)",
         '  (generator "kicadgen")',
         '  (layer "F.Cu")',
         "  (attr smd)",

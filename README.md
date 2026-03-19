@@ -25,7 +25,7 @@ The tool is not intended to be publicly exposed on the internet.
 
 ## 2.2 Output
 
-- KiCAD 6+ format files:
+- KiCAD 9 format files:
   - `.kicad_mod`
   - `.kicad_sym`
 - Extracted structured JSON
@@ -423,10 +423,12 @@ pitch_mm × (pins_per_side - 1)
 
 ## 9.1 Target Format
 
-KiCAD 6+ S-expression format:
+KiCAD 9 S-expression format:
 
-- `.kicad_mod`
+- `.kicad_mod` (version 20241229)
 - `.kicad_sym`
+
+**Note:** This tool is designed for **KiCAD 9 only**. Generated files use the KiCAD 9 footprint format version (20241229) and may not be compatible with earlier KiCAD versions.
 
 ---
 
