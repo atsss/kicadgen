@@ -42,7 +42,7 @@ def test_generate_symbol_has_part_number(qfn_symbol):
 def test_generate_symbol_has_kicad_structure(qfn_symbol):
     """Test that output has KiCAD symbol S-expression structure."""
     result = generate_symbol_sexpr(qfn_symbol, "TEST-QFN16")
-    assert result.startswith("(symbol")
+    assert result.startswith("(kicad_symbol_lib")
     assert result.endswith(")")
     assert "(pin" in result or "pin" in result.lower()
 
@@ -173,3 +173,11 @@ def test_generate_symbol_vs_different_pin_counts():
     assert result_4 != result_8
     # 8-pin should have more content
     assert len(result_8) > len(result_4)
+
+
+def test_generate_symbol_has_root_wrapper(qfn_symbol):
+    """Regression: .kicad_sym must be wrapped in (kicad_symbol_lib ...)."""
+    result = generate_symbol_sexpr(qfn_symbol, "TEST-QFN16")
+    assert result.startswith("(kicad_symbol_lib"), (
+        "Missing (kicad_symbol_lib ...) root wrapper required by KiCad 6+"
+    )

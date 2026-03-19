@@ -112,13 +112,13 @@ def generate_footprint_sexpr(spec: FootprintSpec, part_number: str) -> str:
             lines.extend(
                 [
                     "",
-                    '  (fp_text reference "{}" (at 0 {:.3f}) (layer "F.SilkS"))'.format(
+                    '  (fp_text reference "{}" (at 0 {:.3f}) (layer "F.SilkS")'.format(
                         "U?", -(body_length / 2 + 1.0)
                     ),
                     "    (effects (font (size 1.0 1.0) (thickness 0.15)))",
                     "  )",
                     "",
-                    '  (fp_text value "{}" (at 0 {:.3f}) (layer "F.Fab"))'.format(
+                    '  (fp_text value "{}" (at 0 {:.3f}) (layer "F.Fab")'.format(
                         part_number, body_length / 2 + 1.0
                     ),
                     "    (effects (font (size 1.0 1.0) (thickness 0.15)))",
@@ -138,13 +138,13 @@ def generate_footprint_sexpr(spec: FootprintSpec, part_number: str) -> str:
             lines.extend(
                 [
                     "",
-                    '  (fp_text reference "{}" (at 0 0) (layer "F.SilkS"))'.format(
+                    '  (fp_text reference "{}" (at 0 0) (layer "F.SilkS")'.format(
                         "U?"
                     ),
                     "    (effects (font (size 1.0 1.0) (thickness 0.15)))",
                     "  )",
                     "",
-                    '  (fp_text value "{}" (at 0 0) (layer "F.Fab"))'.format(
+                    '  (fp_text value "{}" (at 0 0) (layer "F.Fab")'.format(
                         part_number
                     ),
                     "    (effects (font (size 1.0 1.0) (thickness 0.15)))",

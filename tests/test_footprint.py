@@ -149,3 +149,15 @@ def test_generate_footprint_pitch_affects_positions(qfn_spec):
 
     # Results should differ due to different pad positions and thermal pad size
     assert result1 != result2
+
+
+def test_fp_text_effects_properly_nested(qfn_spec):
+    """Regression: effects block must be inside fp_text, not after it."""
+    result = generate_footprint_sexpr(qfn_spec, "TEST")
+    lines = result.splitlines()
+    for i, line in enumerate(lines):
+        if "(fp_text" in line:
+            # fp_text line must NOT end with '))' (that would close fp_text prematurely)
+            assert not line.rstrip().endswith("))"), (
+                f"fp_text closed prematurely on line {i}: {line!r}"
+            )
