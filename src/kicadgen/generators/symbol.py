@@ -20,7 +20,9 @@ def generate_symbol_sexpr(spec: SymbolSpec, part_number: str) -> str:
         '(kicad_symbol_lib (version 20211014) (generator "kicadgen")',
         '  (symbol "{}"'.format(part_number),
         "    (pin_numbers hide)",
-        '    (property "Reference" "{}" (id 0) (at 0 0 0))'.format(spec.reference_prefix),
+        '    (property "Reference" "{}" (id 0) (at 0 0 0))'.format(
+            spec.reference_prefix
+        ),
         '    (property "Value" "{}" (id 1) (at 0 0 0))'.format(part_number),
         "",
     ]
