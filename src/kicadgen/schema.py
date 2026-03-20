@@ -50,9 +50,13 @@ class ComponentInfo(BaseModel):
     name: str = Field(..., description="Human readable component name")
     manufacturer: str = Field(..., description="Manufacturer name")
     part_number: str = Field(..., description="Official part number")
-    description: str = Field(..., description="Short functional description")
+    description: str | None = Field(
+        default=None, description="Short functional description"
+    )
     package_type: str = Field(..., description="Package name (e.g., SOIC-8, QFN-32)")
-    datasheet_source: str = Field(..., description="Datasheet filename or URL")
+    datasheet_source: str | None = Field(
+        default=None, description="Datasheet filename or URL"
+    )
 
 
 class MetadataSpec(BaseModel):
@@ -76,11 +80,13 @@ class SymbolSpec(BaseModel):
     """Symbol specification for KiCAD generation."""
 
     pin_count: int = Field(..., gt=0, description="Total number of pins in symbol")
-    pin_pitch_grid: float = Field(
-        default=2.54, description="Pin pitch grid in millimeters"
+    pin_pitch_grid: float | None = Field(
+        default=None,
+        description="Pin pitch grid in millimeters (defaults to 2.54mm if null)",
     )
-    reference_prefix: str = Field(
-        default="U", description="Reference designator prefix (e.g., 'U', 'R', 'C')"
+    reference_prefix: str | None = Field(
+        default=None,
+        description="Reference designator prefix (defaults to 'U' if null)",
     )
     pins: list[PinSpec] = Field(..., description="List of pins in the symbol")
 
