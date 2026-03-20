@@ -210,7 +210,7 @@ def extract(
     """
     prompt = build_prompt(part_number)
 
-    last_error = None
+    last_error: json.JSONDecodeError | ValueError | None = None
     for attempt in range(max_retries):
         logger.debug(
             f"Extraction attempt {attempt + 1}/{max_retries} for {part_number}"
