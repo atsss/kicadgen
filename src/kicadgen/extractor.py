@@ -1,10 +1,13 @@
 """VLM-based extraction of component specifications from datasheet images."""
 
 import json
+import logging
 from typing import Any
 
 from kicadgen.schema import ComponentSpec
 from kicadgen.vlm_client import VLMClient
+
+logger = logging.getLogger(__name__)
 
 
 class ExtractionError(Exception):
@@ -92,6 +95,33 @@ Your task is to extract component specifications from the provided datasheet ima
 **JSON Schema:**
 {json_schema}
 
+**IMPORTANT FIELD CATEGORIZATION:**
+
+CRITICAL FIELDS (must always be extracted, never null):
+- component.name: Component model/part name
+- component.part_number: Part identifier
+- component.manufacturer: Manufacturer name
+- component.package_type: Package type (QFN, DIP, SOIC, etc.)
+- symbol.pin_count: Total number of pins
+- symbol.pins[]: Pin list with:
+  - number: Pin identifier (1, 2, 3, A1, etc.)
+  - name: Pin name (VCC, GND, DATA, CLK, etc.)
+  - type: Pin type (input, output, power_in, power_out, passive, bidirectional)
+- footprint.pin_count: Total pins for footprint
+- footprint.pad_type: Either "smd" or "through_hole"
+
+FIELDS WITH SYSTEM DEFAULTS (can be null, system will fill them):
+- symbol.pin_pitch_grid: Defaults to 2.54mm if null
+- symbol.reference_prefix: Defaults to "U" if null
+- component.description: Can be null (optional metadata)
+- component.datasheet_source: Can be null (optional metadata)
+
+FIELDS THAT CAN BE NULL (geometric/optional):
+- footprint.pitch_mm, body_width_mm, body_length_mm, pins_per_side
+- All other footprint fields and pad details
+
+If a critical field is truly unclear from the datasheet, document it in metadata.missing_fields and metadata.assumptions, but still provide your best extraction attempt.
+
 **Component Information:**
 The component part number is: {part_number}
 
@@ -105,6 +135,30 @@ Return ONLY the JSON object, starting with {{ and ending with }}, with no additi
 """
 
     return prompt
+
+
+def apply_schema_defaults(data: dict[str, Any]) -> dict[str, Any]:
+    """Apply schema-defined defaults to extracted data before Pydantic validation.
+
+    Fields that the LLM may return as null but the system has defaults for:
+    - symbol.pin_pitch_grid defaults to 2.54mm
+    - symbol.reference_prefix defaults to "U"
+
+    Args:
+        data: Extracted data dictionary with potentially null optional fields
+
+    Returns:
+        Dictionary with defaults applied to null fields
+    """
+    if "symbol" in data:
+        if data["symbol"].get("pin_pitch_grid") is None:
+            data["symbol"]["pin_pitch_grid"] = 2.54
+            logger.debug("Applied default pin_pitch_grid: 2.54mm")
+        if data["symbol"].get("reference_prefix") is None:
+            data["symbol"]["reference_prefix"] = "U"
+            logger.debug("Applied default reference_prefix: U")
+
+    return data
 
 
 def parse_json_from_response(text: str) -> dict[str, Any]:
@@ -158,16 +212,27 @@ def extract(
 
     last_error = None
     for attempt in range(max_retries):
+        logger.debug(
+            f"Extraction attempt {attempt + 1}/{max_retries} for {part_number}"
+        )
         try:
             response = client.call(images, prompt)
             data = parse_json_from_response(response)
+            # Apply schema-defined defaults before validation
+            data = apply_schema_defaults(data)
             spec = ComponentSpec(**data)
+            logger.debug(f"Extraction succeeded on attempt {attempt + 1}")
             return spec
-        except (json.JSONDecodeError, ValueError) as e:
+        except json.JSONDecodeError as e:
             last_error = e
-            # Continue to next retry
+            logger.debug(f"Attempt {attempt + 1}: JSON parse error: {e}")
+            continue
+        except ValueError as e:
+            last_error = e
+            logger.debug(f"Attempt {attempt + 1}: Schema validation error: {e}")
             continue
 
+    logger.error(f"Failed to extract after {max_retries} attempts for {part_number}")
     raise ExtractionError(
         f"Failed to extract component specification after {max_retries} attempts. "
         f"Last error: {last_error}"
