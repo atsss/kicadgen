@@ -28,6 +28,7 @@ The tool is not intended to be publicly exposed on the internet.
 - KiCAD 9 format files:
   - `.kicad_mod`
   - `.kicad_sym`
+  - `.zip` (archive combining `.kicad_mod` and `.kicad_sym`)
 - Extracted structured JSON
 - Validation report (text format)
 
@@ -257,7 +258,8 @@ Orchestrates the full workflow:
 6. **[Human Review]** — prompt user to review extracted data (unless --no-review)
 7. Validate results
 8. Generate KiCAD files (if valid)
-9. Write outputs and reports
+9. Create zip archive of `.kicad_mod` and `.kicad_sym`
+10. Write outputs and reports
 
 **Key Functions:**
 - `prompt_human_review(spec, extracted_path)`: Displays extraction summary and waits for user confirmation
@@ -453,10 +455,12 @@ KiCAD 9 S-expression format:
 
 ```
 out/
- ├── <part>.kicad_mod
- ├── <part>.kicad_sym
- ├── extracted.json
- └── validation_report.txt
+ └── <timestamp>/
+     ├── <part>.kicad_mod
+     ├── <part>.kicad_sym
+     ├── <part>.zip          (archive of .kicad_mod and .kicad_sym)
+     ├── extracted.json
+     └── validation_report.txt
 ```
 
 ---

@@ -102,7 +102,8 @@ Orchestrates the complete workflow from PDF to KiCAD files.
 6. **[Human Review]** — prompt user to review extracted data (unless `--no-review` flag)
 7. Validate specification
 8. Generate KiCAD files (if validation passes)
-9. Write outputs and validation report
+9. Create zip archive of `.kicad_mod` and `.kicad_sym`
+10. Write outputs and validation report
 
 **User Interactions:**
 - Review prompt accepts: `y`/Enter to proceed, `n`/`q` to abort (exit code 1)

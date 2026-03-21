@@ -1,5 +1,6 @@
 """Pipeline orchestration for the complete extraction and generation workflow."""
 
+import zipfile
 from datetime import datetime
 from pathlib import Path
 
@@ -212,6 +213,13 @@ def run(args) -> int:
             symbol_path = timestamped_dir / f"{args.part_number}.kicad_sym"
             symbol_path.write_text(symbol_sexpr)
             logger.info(f"Saved symbol to {symbol_path}")
+
+            # Create zip archive with symbol and footprint
+            zip_path = timestamped_dir / f"{args.part_number}.zip"
+            with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
+                zf.write(footprint_path, footprint_path.name)
+                zf.write(symbol_path, symbol_path.name)
+            logger.info(f"Saved zip archive to {zip_path}")
         else:
             logger.info("--dry-run: Skipping KiCAD file generation")
 
