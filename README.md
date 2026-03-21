@@ -176,7 +176,7 @@ Core Pydantic v2 models (foundational):
 - `ComponentInfo(name, manufacturer, part_number, description, package_type, datasheet_source)` — component metadata
 - `MetadataSpec(extraction_confidence, missing_fields, assumptions, source_pages)` — AI extraction metadata
 - `PinSpec(number, name, type, side, unit)` — pin with optional placement hints
-- `SymbolSpec(reference_prefix="U", pin_count, pin_pitch_grid, pins: list[PinSpec])`
+- `SymbolSpec(pin_count, pin_pitch_grid=None, reference_prefix=None, pins: list[PinSpec])` — pin_pitch_grid defaults to 2.54mm, reference_prefix defaults to "U" if not extracted
 - `FootprintSpec(pin_count, pins_per_side, pad_type, pad_shape, pitch_mm, pads, body_width_mm, body_length_mm, body_height_mm, pin1_location)`
 - `ComponentSpec(component, symbol, footprint, metadata)` — complete specification
 
@@ -324,9 +324,9 @@ The normalized JSON output follows this structure:
     "name": "",
     "manufacturer": "",
     "part_number": "",
-    "description": "",
+    "description": null,
     "package_type": "",
-    "datasheet_source": ""
+    "datasheet_source": null
   },
   "symbol": {
     "pin_count": 0,
@@ -386,6 +386,12 @@ Key design principles:
 - Pin numbering matches datasheet exactly
 - Pad coordinates use package center as origin
 - Per-pad explicit coordinates override computed layout
+
+Optional fields with system defaults (can be null in extracted JSON):
+- `component.description` — optional metadata, can be null
+- `component.datasheet_source` — optional metadata, can be null
+- `symbol.pin_pitch_grid` — system applies 2.54mm default if null
+- `symbol.reference_prefix` — system applies "U" default if null
 
 ---
 
