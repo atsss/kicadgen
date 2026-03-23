@@ -22,8 +22,8 @@ class PadSpec(BaseModel):
         description="Drill hole diameter in millimeters (for through-hole)",
     )
     shape: str = Field(
-        default="rectangle",
-        description="Pad shape (e.g., 'rectangle', 'oval', 'circle')",
+        default="rect",
+        description="Pad shape (KiCAD token: 'rect', 'oval', 'circle', 'roundrect', 'trapezoid', 'custom')",
     )
 
 
@@ -100,7 +100,8 @@ class FootprintSpec(BaseModel):
     )
     pad_type: str = Field(..., description="Pad type (smd or through_hole)")
     pad_shape: str = Field(
-        default="rectangle", description="Default pad shape (rectangle, oval, circle)"
+        default="rect",
+        description="Default pad shape (KiCAD token: 'rect', 'oval', 'circle', 'roundrect', 'trapezoid', 'custom')",
     )
     pitch_mm: float | None = Field(default=None, description="Pin pitch in millimeters")
     pads: list[PadSpec] = Field(
