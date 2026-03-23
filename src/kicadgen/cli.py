@@ -15,10 +15,12 @@ def main() -> int:
         prog="kicadgen",
     )
 
-    # Positional argument
+    # Positional argument (optional if --input-json is provided)
     parser.add_argument(
         "input_pdf",
-        help="Path to the component datasheet PDF",
+        nargs="?",
+        default=None,
+        help="Path to the component datasheet PDF (not required if --input-json is provided)",
     )
 
     # Required optional arguments
@@ -26,6 +28,14 @@ def main() -> int:
         "--part-number",
         required=True,
         help="Component part number (e.g., STM32H743)",
+    )
+
+    # JSON input option (skips VLM extraction)
+    parser.add_argument(
+        "--input-json",
+        metavar="PATH",
+        default=None,
+        help="Path to a pre-extracted JSON file; skips VLM extraction stage",
     )
 
     # Optional arguments
@@ -61,6 +71,17 @@ def main() -> int:
     )
 
     args = parser.parse_args()
+
+    # Validate that either input_pdf or --input-json is provided, but not both
+    if args.input_pdf is None and args.input_json is None:
+        parser.error(
+            "either INPUT_PDF or --input-json must be provided"
+        )
+
+    if args.input_pdf is not None and args.input_json is not None:
+        parser.error(
+            "cannot provide both INPUT_PDF and --input-json; choose one"
+        )
 
     from kicadgen.pipeline import run
 

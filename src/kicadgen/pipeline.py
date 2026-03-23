@@ -129,12 +129,6 @@ def run(args) -> int:
     # Set up logging
     logger = setup_logger(__name__, verbose=args.verbose)
 
-    # Validate input file
-    input_path = Path(args.input_pdf)
-    if not input_path.exists():
-        logger.error(f"Input PDF not found: {input_path}")
-        return 1
-
     # Create output directory with timestamp subdirectory
     output_dir = Path(args.out)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -144,34 +138,57 @@ def run(args) -> int:
     timestamped_dir.mkdir(parents=True, exist_ok=True)
 
     try:
-        # Load PDF
-        logger.info(f"Loading PDF: {input_path}")
-        doc = fitz.open(input_path)
+        # Branch: load from pre-extracted JSON or run full extraction pipeline
+        if args.input_json:
+            # Skip VLM extraction; load from pre-extracted JSON
+            input_json_path = Path(args.input_json)
+            if not input_json_path.exists():
+                logger.error(f"Input JSON not found: {input_json_path}")
+                return 1
 
-        # Select relevant pages
-        logger.info("Selecting relevant pages...")
-        page_indices = select_relevant_pages(doc, KEYWORDS)
-        if not page_indices:
-            logger.warning("No relevant pages found; using first page")
-            page_indices = [0]
+            logger.info(f"Loading pre-extracted specification from: {input_json_path}")
+            spec = ComponentSpec.model_validate_json(input_json_path.read_text())
 
-        # Render pages to images
-        logger.info(f"Rendering {len(page_indices)} page(s) to PNG...")
-        with TempImageDir():
-            images = render_pages_to_png(doc, page_indices, dpi=300)
+            # Copy input JSON to output directory as extracted.json
+            extracted_path = timestamped_dir / "extracted.json"
+            extracted_path.write_text(input_json_path.read_text())
+            logger.info(f"Copied extracted specification to {extracted_path}")
+        else:
+            # Full extraction pipeline: PDF → pages → render → VLM → JSON
+            # Validate input file
+            input_path = Path(args.input_pdf)
+            if not input_path.exists():
+                logger.error(f"Input PDF not found: {input_path}")
+                return 1
 
-            # Get VLM client
-            logger.info(f"Initializing VLM client for model: {args.model}")
-            client = get_client(args.model)
+            # Load PDF
+            logger.info(f"Loading PDF: {input_path}")
+            doc = fitz.open(input_path)
 
-            # Extract component specification
-            logger.info("Extracting component specification from VLM...")
-            spec = extract(client, images, args.part_number)
+            # Select relevant pages
+            logger.info("Selecting relevant pages...")
+            page_indices = select_relevant_pages(doc, KEYWORDS)
+            if not page_indices:
+                logger.warning("No relevant pages found; using first page")
+                page_indices = [0]
 
-        # Save extracted JSON
-        extracted_path = timestamped_dir / "extracted.json"
-        extracted_path.write_text(spec.model_dump_json(indent=2))
-        logger.info(f"Saved extracted specification to {extracted_path}")
+            # Render pages to images
+            logger.info(f"Rendering {len(page_indices)} page(s) to PNG...")
+            with TempImageDir():
+                images = render_pages_to_png(doc, page_indices, dpi=300)
+
+                # Get VLM client
+                logger.info(f"Initializing VLM client for model: {args.model}")
+                client = get_client(args.model)
+
+                # Extract component specification
+                logger.info("Extracting component specification from VLM...")
+                spec = extract(client, images, args.part_number)
+
+            # Save extracted JSON
+            extracted_path = timestamped_dir / "extracted.json"
+            extracted_path.write_text(spec.model_dump_json(indent=2))
+            logger.info(f"Saved extracted specification to {extracted_path}")
 
         # Human review (unless --no-review)
         if not args.no_review:
