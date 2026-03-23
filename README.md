@@ -38,16 +38,16 @@ The tool is not intended to be publicly exposed on the internet.
 
 ```
 CLI
- ↓
-PDF Parsing (Local)
- ↓
-Target Page Selection
- ↓
-Image Conversion (PNG)
- ↓
-VLM API Call
- ↓
-Structured JSON Extraction
+ ├─ Option A: Extract from PDF
+ │   ├─ PDF Parsing (Local)
+ │   ├─ Target Page Selection
+ │   ├─ Image Conversion (PNG)
+ │   ├─ VLM API Call
+ │   └─ Structured JSON Extraction
+ │
+ └─ Option B: Load from JSON (skip VLM)
+     └─ Load Pre-extracted JSON
+
  ↓
 [Human Review] ← pauses for user confirmation
  ↓
@@ -57,6 +57,8 @@ KiCAD File Generation
  ↓
 Output
 ```
+
+**Note:** When `--input-json` is provided, stages 1–5 (PDF processing and VLM extraction) are skipped entirely.
 
 ---
 
@@ -77,24 +79,31 @@ Recommended: GPT-4o (high JSON formatting reliability)
 ## 5.1 CLI Interface
 
 ```bash
+# Option 1: Extract from PDF using VLM
 kicadgen <input.pdf> \
   --part-number <string> \
   --model <model_name> \
+  --out <output_dir>
+
+# Option 2: Use pre-extracted JSON (skip VLM extraction)
+kicadgen --input-json <extracted.json> \
+  --part-number <string> \
   --out <output_dir>
 ```
 
 ### Required Arguments
 
-- `input.pdf`
+- Either `input.pdf` **OR** `--input-json` (mutually exclusive)
 - `--part-number`
 
 ### Optional Arguments
 
-- `--model` (default: gpt-4o)
+- `--model` (default: gpt-4o) — only used when extracting from PDF
 - `--out` (default: ./out)
 - `--verbose`
 - `--dry-run`
 - `--no-review` (skip human review of extracted JSON)
+- `--input-json` (path to pre-extracted JSON; skips PDF/VLM stages)
 
 ---
 
@@ -130,6 +139,40 @@ After AI extraction, before validation, the pipeline pauses for human review:
 - User can:
   - Press **Enter** or type **`y`** → continue to validation
   - Type **`n`** or **`q`** → abort pipeline (exit code 1)
+
+---
+
+## 5.5 Pre-extracted JSON Input
+
+Users can provide a pre-extracted JSON file via `--input-json` to skip the entire VLM extraction stage:
+
+```bash
+kicadgen --input-json /path/to/extracted.json \
+  --part-number STM32H743 \
+  --no-review
+```
+
+**Benefits:**
+- Skip expensive VLM API calls (no API credits consumed)
+- Re-use extraction from prior runs
+- Hand-craft or modify extracted data before generation
+- Faster iteration for KiCAD generation tuning
+
+**Workflow example:**
+```bash
+# 1. Extract from PDF (generates out/<timestamp>/extracted.json)
+kicadgen datasheet.pdf --part-number STM32H743 --no-review
+
+# 2. (Optional) Manually edit extracted.json to fix extraction errors
+
+# 3. Re-run from saved JSON, skip VLM stage
+kicadgen --input-json ./out/<timestamp>/extracted.json --part-number STM32H743 --no-review
+```
+
+**Requirements:**
+- JSON file must conform to the schema (see Section 7)
+- Must be valid JSON parseable by `ComponentSpec.model_validate_json()`
+- Input JSON is copied to output directory as `extracted.json`
 
 ---
 
@@ -250,11 +293,17 @@ Setup verbose/quiet logging based on CLI flags.
 Depends on: all modules
 
 Orchestrates the full workflow:
-1. Load PDF
-2. Select relevant pages
-3. Render to PNG images
-4. Call VLM extraction
-5. Save extracted.json
+
+**Branching logic:**
+- If `--input-json` provided: Load pre-extracted JSON directly (skip stages 1–5)
+- Otherwise: Execute full extraction pipeline
+
+**Full pipeline stages:**
+1. Load PDF (or skip if using `--input-json`)
+2. Select relevant pages (or skip)
+3. Render to PNG images (or skip)
+4. Call VLM extraction (or skip)
+5. Save extracted.json (or copy from input if using `--input-json`)
 6. **[Human Review]** — prompt user to review extracted data (unless --no-review)
 7. Validate results
 8. Generate KiCAD files (if valid)
@@ -269,13 +318,16 @@ Orchestrates the full workflow:
 Depends on: `pipeline.py`
 
 argparse-based CLI with arguments:
-- `input_pdf` (positional, required)
+- `input_pdf` (positional, optional) — required unless `--input-json` is provided
 - `--part-number` (required)
-- `--model` (default: `gpt-4o`)
+- `--input-json` (optional) — path to pre-extracted JSON; skips PDF/VLM stages
+- `--model` (default: `gpt-4o`) — only used when extracting from PDF
 - `--out` (default: `./out`)
 - `--verbose` (flag)
 - `--dry-run` (flag)
 - `--no-review` (flag) — skip human review step before validation
+
+**Validation:** Either `input_pdf` or `--input-json` must be provided, but not both.
 
 ## 6.3 Dependencies (pyproject.toml)
 
