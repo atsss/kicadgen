@@ -18,6 +18,20 @@ def generate_footprint_sexpr(spec: FootprintSpec, part_number: str) -> str:
     Returns:
         Valid .kicad_mod S-expression string
     """
+    # Normalize human-readable shape names to KiCAD tokens
+    SHAPE_MAP = {
+        "rectangle": "rect",
+        "rectangular": "rect",
+        "rect": "rect",
+        "oval": "oval",
+        "circle": "circle",
+        "circular": "circle",
+        "roundrect": "roundrect",
+        "round_rect": "roundrect",
+        "trapezoid": "trapezoid",
+        "custom": "custom",
+    }
+
     # Start building S-expression
     lines = [
         '(footprint "{}"'.format(part_number),
@@ -33,7 +47,8 @@ def generate_footprint_sexpr(spec: FootprintSpec, part_number: str) -> str:
         for pad in spec.pads:
             pad_width = pad.width_mm if pad.width_mm is not None else 0.5
             pad_length = pad.length_mm if pad.length_mm is not None else 1.0
-            pad_shape = pad.shape if pad.shape else "rect"
+            raw_shape = (pad.shape or "rect").lower().strip()
+            pad_shape = SHAPE_MAP.get(raw_shape, raw_shape)
 
             lines.append(
                 '  (pad "{}" smd {} (at {:.3f} {:.3f}) (size {:.3f} {:.3f}) (layers "F.Cu" "F.Paste" "F.Mask"))'.format(
