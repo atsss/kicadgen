@@ -10,6 +10,7 @@ from kicadgen.extractor import extract
 from kicadgen.generators.footprint import generate_footprint_sexpr
 from kicadgen.generators.symbol import generate_symbol_sexpr
 from kicadgen.pdf_processor import render_pages_to_png, select_relevant_pages
+from kicadgen.schema import ComponentSpec
 from kicadgen.utils.logging import setup_logger
 from kicadgen.utils.tempfiles import TempImageDir
 from kicadgen.validator import validate_component
@@ -177,6 +178,8 @@ def run(args) -> int:
             if not prompt_human_review(spec, extracted_path):
                 logger.info("Review aborted by user")
                 return 1
+            # Reload spec from disk in case user edited extracted.json during review
+            spec = ComponentSpec.model_validate_json(extracted_path.read_text())
 
         # Validate
         logger.info("Validating component specification...")
