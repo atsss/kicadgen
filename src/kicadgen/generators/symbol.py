@@ -16,18 +16,7 @@ def generate_symbol_sexpr(spec: SymbolSpec, part_number: str) -> str:
     Returns:
         Valid .kicad_sym S-expression string
     """
-    lines = [
-        '(kicad_symbol_lib (version 20211014) (generator "kicadgen")',
-        '  (symbol "{}"'.format(part_number),
-        "    (pin_numbers hide)",
-        '    (property "Reference" "{}" (id 0) (at 0 0 0))'.format(
-            spec.reference_prefix
-        ),
-        '    (property "Value" "{}" (id 1) (at 0 0 0))'.format(part_number),
-        "",
-    ]
-
-    # Determine pin placement
+    # Determine pin placement early to calculate body dimensions
     left_pins = []
     right_pins = []
     top_pins = []
@@ -60,6 +49,20 @@ def generate_symbol_sexpr(spec: SymbolSpec, part_number: str) -> str:
     pin_count = len(spec.pins)
     body_height = max(20, pin_count)
     body_width = 10
+
+    # Calculate reference position below the design
+    ref_y = -(body_height / 2 + 2.0)
+
+    lines = [
+        '(kicad_symbol_lib (version 20211014) (generator "kicadgen")',
+        '  (symbol "{}"'.format(part_number),
+        "    (pin_numbers hide)",
+        '    (property "Reference" "{}" (id 0) (at 0 {:.1f} 0))'.format(
+            spec.reference_prefix, ref_y
+        ),
+        '    (property "Value" "{}" (id 1) (at 0 0 0))'.format(part_number),
+        "",
+    ]
 
     # Add symbol drawing
     lines.extend(
