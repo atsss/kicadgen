@@ -74,14 +74,10 @@ def main() -> int:
 
     # Validate that either input_pdf or --input-json is provided, but not both
     if args.input_pdf is None and args.input_json is None:
-        parser.error(
-            "either INPUT_PDF or --input-json must be provided"
-        )
+        parser.error("either INPUT_PDF or --input-json must be provided")
 
     if args.input_pdf is not None and args.input_json is not None:
-        parser.error(
-            "cannot provide both INPUT_PDF and --input-json; choose one"
-        )
+        parser.error("cannot provide both INPUT_PDF and --input-json; choose one")
 
     from kicadgen.pipeline import run
 
