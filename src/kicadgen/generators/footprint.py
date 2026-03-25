@@ -58,10 +58,14 @@ def generate_footprint_sexpr(spec: FootprintSpec, part_number: str) -> str:
 
         # Compute y-extent from pad positions for text placement
         # Account for pad extent (center + half-length) when computing text offset
-        text_offset = max(
-            abs(pad.y_mm) + (pad.length_mm if pad.length_mm is not None else 1.0) / 2
-            for pad in spec.pads
-        ) + 1.0
+        text_offset = (
+            max(
+                abs(pad.y_mm)
+                + (pad.length_mm if pad.length_mm is not None else 1.0) / 2
+                for pad in spec.pads
+            )
+            + 1.0
+        )
 
         lines.extend(
             [

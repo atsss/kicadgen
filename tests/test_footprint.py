@@ -190,11 +190,14 @@ def test_explicit_pads_text_clears_pad_extent():
 
     # Extract text positions using regex to get coordinates from (at x y) format
     import re
+
     # Matches: (at 0 3.750) or (at 0.000 3.750)
-    text_coord_patterns = re.findall(r'\(at\s+(-?[0-9.]+)\s+(-?[0-9.]+)\)', result)
+    text_coord_patterns = re.findall(r"\(at\s+(-?[0-9.]+)\s+(-?[0-9.]+)\)", result)
 
     # Should have reference and value text
-    assert len(text_coord_patterns) >= 2, "Should have at least reference and value text"
+    assert len(text_coord_patterns) >= 2, (
+        "Should have at least reference and value text"
+    )
 
     # Extract Y coordinates (second element of each match)
     text_y_positions = [float(y) for x, y in text_coord_patterns]
@@ -205,8 +208,12 @@ def test_explicit_pads_text_clears_pad_extent():
     max_y = max(text_y_positions)
     min_y = min(text_y_positions)
 
-    assert max_y >= 3.75, f"Text position {max_y} should be ≥ 3.75 (accounting for pad extent)"
-    assert min_y <= -3.75, f"Text position {min_y} should be ≤ -3.75 (accounting for pad extent)"
+    assert max_y >= 3.75, (
+        f"Text position {max_y} should be ≥ 3.75 (accounting for pad extent)"
+    )
+    assert min_y <= -3.75, (
+        f"Text position {min_y} should be ≤ -3.75 (accounting for pad extent)"
+    )
 
 
 def test_qfn_text_clears_pad_extent():
@@ -232,10 +239,13 @@ def test_qfn_text_clears_pad_extent():
 
     # Extract text positions using regex to get coordinates from (at x y) format
     import re
-    text_coord_patterns = re.findall(r'\(at\s+(-?[0-9.]+)\s+(-?[0-9.]+)\)', result)
+
+    text_coord_patterns = re.findall(r"\(at\s+(-?[0-9.]+)\s+(-?[0-9.]+)\)", result)
 
     # Should have reference and value text
-    assert len(text_coord_patterns) >= 2, "Should have at least reference and value text"
+    assert len(text_coord_patterns) >= 2, (
+        "Should have at least reference and value text"
+    )
 
     # Extract Y coordinates (second element of each match)
     text_y_positions = [float(y) for x, y in text_coord_patterns]
@@ -279,7 +289,8 @@ def test_qfn_pad_position_and_text_offset():
     # Pads extend to ±(1.0 + 0.8) = ±1.8
     # Text should be at ±(1.8 + 1.0) = ±2.8
     import re
-    text_coord_patterns = re.findall(r'\(at\s+(-?[0-9.]+)\s+(-?[0-9.]+)\)', result)
+
+    text_coord_patterns = re.findall(r"\(at\s+(-?[0-9.]+)\s+(-?[0-9.]+)\)", result)
     text_y_positions = [float(y) for x, y in text_coord_patterns]
 
     # Find the text positions (should include reference and value)
