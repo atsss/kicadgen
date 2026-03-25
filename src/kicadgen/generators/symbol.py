@@ -50,17 +50,19 @@ def generate_symbol_sexpr(spec: SymbolSpec, part_number: str) -> str:
     body_height = max(20, pin_count)
     body_width = 10
 
-    # Calculate reference position below the design
-    ref_y = -(body_height / 2 + 2.0)
+    # Calculate reference and value positions symmetric around the design
+    text_offset = body_height / 2 + 1.0
 
     lines = [
         '(kicad_symbol_lib (version 20211014) (generator "kicadgen")',
         '  (symbol "{}"'.format(part_number),
         "    (pin_numbers hide)",
         '    (property "Reference" "{}" (id 0) (at 0 {:.1f} 0))'.format(
-            spec.reference_prefix, ref_y
+            spec.reference_prefix, -text_offset
         ),
-        '    (property "Value" "{}" (id 1) (at 0 0 0))'.format(part_number),
+        '    (property "Value" "{}" (id 1) (at 0 {:.1f} 0))'.format(
+            part_number, text_offset
+        ),
         "",
     ]
 
