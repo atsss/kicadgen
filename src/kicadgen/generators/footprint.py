@@ -55,6 +55,27 @@ def generate_footprint_sexpr(spec: FootprintSpec, part_number: str) -> str:
                     pad.number, pad_shape, pad.x_mm, pad.y_mm, pad_width, pad_length
                 )
             )
+
+        # Compute y-extent from pad positions for text placement
+        pad_ys = [pad.y_mm for pad in spec.pads]
+        text_offset = max(abs(y) for y in pad_ys) + 1.0
+
+        lines.extend(
+            [
+                "",
+                '  (fp_text reference "U?" (at 0 {:.3f}) (layer "F.SilkS")'.format(
+                    -text_offset
+                ),
+                "    (effects (font (size 1.0 1.0) (thickness 0.15)))",
+                "  )",
+                "",
+                '  (fp_text value "{}" (at 0 {:.3f}) (layer "F.Fab")'.format(
+                    part_number, text_offset
+                ),
+                "    (effects (font (size 1.0 1.0) (thickness 0.15)))",
+                "  )",
+            ]
+        )
     else:
         # Fallback to computed QFN layout
         if (
