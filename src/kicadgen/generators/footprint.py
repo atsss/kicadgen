@@ -57,8 +57,15 @@ def generate_footprint_sexpr(spec: FootprintSpec, part_number: str) -> str:
             )
 
         # Compute y-extent from pad positions for text placement
-        pad_ys = [pad.y_mm for pad in spec.pads]
-        text_offset = max(abs(y) for y in pad_ys) + 1.0
+        # Account for pad extent (center + half-length) when computing text offset
+        text_offset = (
+            max(
+                abs(pad.y_mm)
+                + (pad.length_mm if pad.length_mm is not None else 1.0) / 2
+                for pad in spec.pads
+            )
+            + 1.0
+        )
 
         lines.extend(
             [
@@ -145,17 +152,19 @@ def generate_footprint_sexpr(spec: FootprintSpec, part_number: str) -> str:
             )
 
             # Add reference and value text fields
+            # Pad outer edge is at body_length/2 + pad_length, add 1.0 mm margin
+            pad_extent = body_length / 2 + pad_length
             lines.extend(
                 [
                     "",
                     '  (fp_text reference "{}" (at 0 {:.3f}) (layer "F.SilkS")'.format(
-                        "U?", -(body_length / 2 + 1.0)
+                        "U?", -(pad_extent + 1.0)
                     ),
                     "    (effects (font (size 1.0 1.0) (thickness 0.15)))",
                     "  )",
                     "",
                     '  (fp_text value "{}" (at 0 {:.3f}) (layer "F.Fab")'.format(
-                        part_number, body_length / 2 + 1.0
+                        part_number, pad_extent + 1.0
                     ),
                     "    (effects (font (size 1.0 1.0) (thickness 0.15)))",
                     "  )",

@@ -161,3 +161,148 @@ def test_fp_text_effects_properly_nested(qfn_spec):
             assert not line.rstrip().endswith("))"), (
                 f"fp_text closed prematurely on line {i}: {line!r}"
             )
+
+
+def test_explicit_pads_text_clears_pad_extent():
+    """Test that reference/value text avoids overlap with explicit pads.
+
+    For explicit pads, text position must account for pad length in Y direction.
+    Text Y position should be ≥ pad_y + pad_length/2 + 1.0 (margin).
+    """
+    from kicadgen.schema import PadSpec
+
+    spec = FootprintSpec(
+        pin_count=2,
+        pins_per_side=1,
+        pad_type="smd",
+        pad_shape="rectangle",
+        pitch_mm=0.5,
+        pads=[
+            PadSpec(number="1", x_mm=0.0, y_mm=2.0, width_mm=0.5, length_mm=1.5),
+            PadSpec(number="2", x_mm=0.0, y_mm=-2.0, width_mm=0.5, length_mm=1.5),
+        ],
+        body_width_mm=2.0,
+        body_length_mm=2.0,
+        body_height_mm=0.8,
+    )
+
+    result = generate_footprint_sexpr(spec, "TEST-PADS")
+
+    # Extract text positions using regex to get coordinates from (at x y) format
+    import re
+
+    # Matches: (at 0 3.750) or (at 0.000 3.750)
+    text_coord_patterns = re.findall(r"\(at\s+(-?[0-9.]+)\s+(-?[0-9.]+)\)", result)
+
+    # Should have reference and value text
+    assert len(text_coord_patterns) >= 2, (
+        "Should have at least reference and value text"
+    )
+
+    # Extract Y coordinates (second element of each match)
+    text_y_positions = [float(y) for x, y in text_coord_patterns]
+
+    # Text positions should account for pad extent
+    # Pad at y=2.0 with length=1.5 extends to 2.0 + 1.5/2 = 2.75
+    # Text should be at ≥ 2.75 + 1.0 = 3.75 or ≤ -(3.75)
+    max_y = max(text_y_positions)
+    min_y = min(text_y_positions)
+
+    assert max_y >= 3.75, (
+        f"Text position {max_y} should be ≥ 3.75 (accounting for pad extent)"
+    )
+    assert min_y <= -3.75, (
+        f"Text position {min_y} should be ≤ -3.75 (accounting for pad extent)"
+    )
+
+
+def test_qfn_text_clears_pad_extent():
+    """Test that reference/value text avoids overlap with QFN pads.
+
+    For QFN layout, pads extend to body_length/2 + pad_length.
+    Text should be placed beyond this extent with 1.0 mm margin.
+    """
+    spec = FootprintSpec(
+        pin_count=8,
+        pins_per_side=2,
+        pad_type="smd",
+        pad_shape="rectangle",
+        pitch_mm=0.5,
+        pads=[],
+        body_width_mm=3.0,
+        body_length_mm=2.5,  # body_length/2 = 1.25
+        body_height_mm=0.8,
+        pin1_location="top-left",
+    )
+
+    result = generate_footprint_sexpr(spec, "TEST-QFN")
+
+    # Extract text positions using regex to get coordinates from (at x y) format
+    import re
+
+    text_coord_patterns = re.findall(r"\(at\s+(-?[0-9.]+)\s+(-?[0-9.]+)\)", result)
+
+    # Should have reference and value text
+    assert len(text_coord_patterns) >= 2, (
+        "Should have at least reference and value text"
+    )
+
+    # Extract Y coordinates (second element of each match)
+    text_y_positions = [float(y) for x, y in text_coord_patterns]
+
+    # With body_length=2.5 and pad_length=0.8:
+    # Pad extent = 1.25 + 0.8 = 2.05
+    # Text should be at ≥ 2.05 + 1.0 = 3.05 or ≤ -(3.05)
+    max_y = max(text_y_positions)
+    min_y = min(text_y_positions)
+
+    expected_min_margin = 1.25 + 0.8 + 1.0  # body_length/2 + pad_length + margin
+    assert max_y >= expected_min_margin, (
+        f"Text position {max_y} should be ≥ {expected_min_margin} "
+        f"(accounting for QFN pad extent + margin)"
+    )
+    assert min_y <= -expected_min_margin, (
+        f"Text position {min_y} should be ≤ {-expected_min_margin} "
+        f"(accounting for QFN pad extent + margin)"
+    )
+
+
+def test_qfn_pad_position_and_text_offset():
+    """Verify QFN pad positions and text offset calculation details."""
+    spec = FootprintSpec(
+        pin_count=4,
+        pins_per_side=1,
+        pad_type="smd",
+        pad_shape="rectangle",
+        pitch_mm=0.5,
+        pads=[],
+        body_width_mm=2.0,
+        body_length_mm=2.0,  # body_length/2 = 1.0
+        body_height_mm=0.8,
+        pin1_location="top-left",
+    )
+
+    result = generate_footprint_sexpr(spec, "TEST-QFN4")
+
+    # Bottom pad (pin 1) should be at y = 1.0 + 0.4 = 1.4
+    # Top pad (pin 3) should be at y = -(1.0 + 0.4) = -1.4
+    # Pads extend to ±(1.0 + 0.8) = ±1.8
+    # Text should be at ±(1.8 + 1.0) = ±2.8
+    import re
+
+    text_coord_patterns = re.findall(r"\(at\s+(-?[0-9.]+)\s+(-?[0-9.]+)\)", result)
+    text_y_positions = [float(y) for x, y in text_coord_patterns]
+
+    # Find the text positions (should include reference and value)
+    assert len(text_y_positions) >= 2, "Should have at least reference and value text"
+
+    # Check that text positions are approximately ±2.8 (allowing small floating point tolerance)
+    value_text_y = max(text_y_positions)
+    ref_text_y = min(text_y_positions)
+
+    assert abs(value_text_y - 2.8) < 0.01, (
+        f"Value text should be at y=2.8 (pad extent 1.8 + margin 1.0), got {value_text_y}"
+    )
+    assert abs(ref_text_y - (-2.8)) < 0.01, (
+        f"Reference text should be at y=-2.8 (pad extent 1.8 + margin 1.0), got {ref_text_y}"
+    )
